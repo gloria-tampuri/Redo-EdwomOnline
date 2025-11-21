@@ -14,7 +14,7 @@ const userSchema: Schema = new Schema({
   id:{type:String},
   email: { type: String, required: true, unique: true },
   name: { type: String, required: true },
-  passwordHash: { type: String, required: true },
+  passwordHash: { type: String, required: false, default: '' }, // Optional for OAuth users
   role: { type: String, enum: ['user', 'admin'], default: 'user' },
   isEmailVerified: { type: Boolean, default: false },
   createdAt: { type: Date, default: Date.now },
