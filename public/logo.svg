@@ -1,0 +1,24 @@
+<svg width="180" height="50" viewBox="0 0 180 50" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Edwom Logo with Lock Icon -->
+  <defs>
+    <style>
+      .logo-text { font-family: 'Arial', sans-serif; font-size: 28px; font-weight: 700; fill: #354D1F; }
+      .logo-lock { fill: #354D1F; }
+    </style>
+  </defs>
+  
+  <!-- Main Text -->
+  <text x="0" y="35" class="logo-text">Edwom</text>
+  
+  <!-- Lock Icon -->
+  <g transform="translate(125, 8)">
+    <!-- Lock body -->
+    <rect x="4" y="14" width="20" height="18" rx="2" class="logo-lock"/>
+    <!-- Lock shackle -->
+    <path d="M 8 14 Q 8 4 14 4 Q 20 4 20 14" stroke="#354D1F" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+    <!-- Lock keyhole -->
+    <circle cx="14" cy="21" r="2" class="logo-lock"/>
+    <!-- Keyhole stem -->
+    <line x1="14" y1="23" x2="14" y2="26" stroke="#354D1F" stroke-width="1.5" stroke-linecap="round"/>
+  </g>
+</svg>

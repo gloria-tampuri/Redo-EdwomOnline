@@ -11,8 +11,7 @@ export function Header() {
       <nav className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
         {/* Logo */}
         <Link href="/" className="flex items-center gap-2">
-          <span className="text-2xl">🛒</span>
-          <span className="font-bold text-lg text-gray-900">Edwom Online</span>
+          <img src="/assets/EdwomLogo.png" alt="Edwom Online" className="h-8 w-auto" />
         </Link>
 
         {/* Desktop Navigation */}

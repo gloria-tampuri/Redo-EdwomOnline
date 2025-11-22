@@ -77,7 +77,7 @@ export default function AdminDashboard() {
             href="/admin/orders"
             className="bg-white rounded-lg shadow hover:shadow-lg transition p-6 block"
           >
-            <div className="text-4xl mb-4">🛒</div>
+            <div className="text-4xl mb-4"></div>
             <h3 className="text-xl font-bold text-gray-900 mb-2">Orders</h3>
             <p className="text-gray-600">Manage customer orders</p>
           </Link>
