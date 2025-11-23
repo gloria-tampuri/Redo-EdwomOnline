@@ -3,11 +3,13 @@
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { Eye, EyeOff } from 'lucide-react';
 import { useResetPassword } from '@/hooks/usePasswordReset';
 import { resetPasswordSchema, type ResetPasswordFormData } from '@/app/types/schemas';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Logo } from '@/components/ui/logo';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 
@@ -49,6 +51,9 @@ export function ResetPasswordForm({ token, email }: ResetPasswordFormProps) {
   if (isSuccess) {
     return (
       <div className="space-y-6 w-full">
+        {/* Logo - Click to go home */}
+        <Logo href="/" />
+
         <div className="rounded-lg bg-green-50 p-6 border border-green-200 text-center">
           <div className="text-4xl mb-2">✅</div>
           <h3 className="text-lg font-semibold text-green-900">Password Reset Successful!</h3>
@@ -57,7 +62,7 @@ export function ResetPasswordForm({ token, email }: ResetPasswordFormProps) {
           </p>
           <Link
             href="/auth/login"
-            className="text-blue-600 hover:text-blue-700 font-semibold inline-block mt-4"
+            className="text-primary font-semibold inline-block mt-4"
           >
             Click here if not redirected
           </Link>
@@ -68,8 +73,11 @@ export function ResetPasswordForm({ token, email }: ResetPasswordFormProps) {
 
   return (
     <div className="space-y-6 w-full">
+      {/* Logo - Click to go home */}
+      <Logo href="/" />
+
       <div>
-        <h2 className="text-2xl font-bold text-gray-900">Reset Your Password</h2>
+        <h2 className="text-[32px] font-bold text-card-foreground">Reset Your Password</h2>
         <p className="mt-2 text-sm text-gray-600">
           Resetting password for: <span className="font-semibold">{email}</span>
         </p>
@@ -100,9 +108,14 @@ export function ResetPasswordForm({ token, email }: ResetPasswordFormProps) {
             <button
               type="button"
               onClick={() => setShowPassword(!showPassword)}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-600 hover:text-gray-900"
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 transition-colors"
+              tabIndex={-1}
             >
-              {showPassword ? '🙈' : '👁️'}
+              {showPassword ? (
+                <EyeOff size={20} />
+              ) : (
+                <Eye size={20} />
+              )}
             </button>
           </div>
           {errors.password && (
@@ -126,9 +139,14 @@ export function ResetPasswordForm({ token, email }: ResetPasswordFormProps) {
             <button
               type="button"
               onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-600 hover:text-gray-900"
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 transition-colors"
+              tabIndex={-1}
             >
-              {showConfirmPassword ? '🙈' : '👁️'}
+              {showConfirmPassword ? (
+                <EyeOff size={20} />
+              ) : (
+                <Eye size={20} />
+              )}
             </button>
           </div>
           {errors.confirmPassword && (

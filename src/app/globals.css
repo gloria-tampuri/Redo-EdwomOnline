@@ -58,12 +58,12 @@
   --primary-foreground: oklch(0.985 0 0);
   /* Brand/Secondary - Bright Green (HSB 214, 100, 80, 100) */
   --secondary: #00CC4D;
-  --secondary-foreground: oklch(0.205 0 0);
+  --secondary-foreground: #12170AE5;
   --muted: oklch(0.97 0 0);
   --muted-foreground: oklch(0.556 0 0);
   /* Accent - Amber (HSB 42, 89, 74, 100) */
   --accent: #BDBA12;
-  --accent-foreground: oklch(0.205 0 0);
+  --accent-foreground: #12170AE5;
   /* Destructive - Red (HSB 1, 86, 89, 100) */
   --destructive: #E31414;
   --border: oklch(0.922 0 0);
@@ -80,7 +80,7 @@
   --sidebar-primary: #354D1F;
   --sidebar-primary-foreground: oklch(0.985 0 0);
   --sidebar-accent: #BDBA12;
-  --sidebar-accent-foreground: oklch(0.205 0 0);
+  --sidebar-accent-foreground: #12170AE5;
   --sidebar-border: oklch(0.922 0 0);
   --sidebar-ring: oklch(0.708 0 0);
 }

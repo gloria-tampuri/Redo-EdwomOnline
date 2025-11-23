@@ -1,14 +1,18 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { useForgotPassword } from '@/hooks/usePasswordReset';
-import { forgotPasswordSchema, type ForgotPasswordFormData } from '@/app/types/schemas';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import Link from 'next/link';
+import { useState } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForgotPassword } from "@/hooks/usePasswordReset";
+import {
+  forgotPasswordSchema,
+  type ForgotPasswordFormData,
+} from "@/app/types/schemas";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Logo } from "@/components/ui/logo";
+import Link from "next/link";
 
 export function ForgotPasswordForm() {
   const [submitSuccess, setSubmitSuccess] = useState(false);
@@ -36,18 +40,34 @@ export function ForgotPasswordForm() {
   if (submitSuccess) {
     return (
       <div className="space-y-6 w-full text-center">
+        {/* Logo - Click to go home */}
+        <Logo href="/" />
+
         <div className="flex justify-center mb-4">
           <div className="flex items-center justify-center w-16 h-16 rounded-full bg-green-100">
-            <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+            <svg
+              className="w-8 h-8 text-green-600"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M5 13l4 4L19 7"
+              />
             </svg>
           </div>
         </div>
 
         <div>
-          <h2 className="text-4xl font-bold text-card-foreground">Verify email</h2>
+          <h2 className="text-4xl font-bold text-card-foreground">
+            Verify email
+          </h2>
           <p className="mt-4 text-gray-600">
-            We've sent a link to reset your password. If it doesn't arrive soon, check your spam folder.
+            We've sent a link to reset your password. If it doesn't arrive soon,
+            check your spam folder.
           </p>
         </div>
 
@@ -66,8 +86,16 @@ export function ForgotPasswordForm() {
   // Form state
   return (
     <div className="space-y-6 w-full">
+      {/* Logo - Click to go home */}
+      <div className="grid place-content-center">
+        {" "}
+        <Logo href="/" />
+      </div>
       <div>
-        <h2 className="text-2xl font-bold text-center text-card-foreground">Reset Password</h2>
+        <h2 className="text-[32px] font-bold text-card-foreground text-center">
+          Reset Password
+        </h2>
+
         <p className="mt-2 text-sm text-gray-600">
           Enter your email and we'll send you a link to reset your password.
         </p>
@@ -89,7 +117,7 @@ export function ForgotPasswordForm() {
             id="email"
             type="email"
             placeholder="your@email.com"
-            {...register('email')}
+            {...register("email")}
             disabled={isPending}
             aria-invalid={!!errors.email}
           />
@@ -99,13 +127,16 @@ export function ForgotPasswordForm() {
         </div>
 
         <Button type="submit" disabled={isPending} className="w-full">
-          {isPending ? 'Sending...' : 'Send Reset Link'}
+          {isPending ? "Sending..." : "Send Reset Link"}
         </Button>
       </form>
 
       <div className="text-center">
         <p className="text-sm text-gray-600">
-          <Link href="/auth/login" className="font-semibold text-primary hover:text-primary/90">
+          <Link
+            href="/auth/login"
+            className="font-semibold text-primary hover:text-primary/90"
+          >
             Back to Login
           </Link>
         </p>

@@ -4,7 +4,7 @@ interface IUser extends Document {
   email: string;
   name: string;
   passwordHash: string;
-  role: 'user' | 'admin' | 'super admin';
+  role: 'user' | 'admin' | 'super-admin';
   isEmailVerified: boolean;
   resetPasswordToken?: string;
   resetPasswordExpires?: Date;
@@ -18,7 +18,7 @@ const userSchema: Schema = new Schema({
   email: { type: String, required: true, unique: true },
   name: { type: String, required: true },
   passwordHash: { type: String, required: false, default: '' }, // Optional for OAuth users
-  role: { type: String, enum: ['user', 'admin', 'super admin'], default: 'user' },
+  role: { type: String, enum: ['user', 'admin', 'super-admin'], default: 'user' },
   isEmailVerified: { type: Boolean, default: false },
   resetPasswordToken: { type: String, required: false, default: null },
   resetPasswordExpires: { type: Date, required: false, default: null },

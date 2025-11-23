@@ -1,4 +1,5 @@
 import React from "react";
+import { Logo } from "@/components/ui/logo";
 
 interface AuthLayoutProps {
   children: React.ReactNode;
@@ -13,13 +14,9 @@ export function AuthLayout({ children, title, subtitle }: AuthLayoutProps) {
 
       <div className="w-full md:w-1/2 flex flex-col justify-center items-center p-6 md:p-12 bg-gray-50">
         {/* Mobile Logo */}
-        {/* <div className="md:hidden mb-8 text-center">
-          <img
-            src="/assets/EdwomLogo.png"
-            alt="Edwom Online"
-            className="h-10 w-auto"
-          />
-        </div> */}
+        <div className="md:hidden mb-8 text-center">
+          <Logo href="/" size="md" />
+        </div>
 
         {/* Form Container */}
         <div className="w-full max-w-md">{children}</div>
