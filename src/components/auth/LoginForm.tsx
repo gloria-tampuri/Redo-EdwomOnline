@@ -1,11 +1,15 @@
-import React, { useState, FormEvent, ChangeEvent } from "react";
+'use client';
+
+import React, { useState } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
-
-interface FormData {
-  email: string;
-  password: string;
-}
+import { loginSchema, type LoginFormData } from "@/app/types/schemas";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import Link from "next/link";
 
 interface LoginFormProps {
   isAdmin?: boolean;
@@ -13,31 +17,25 @@ interface LoginFormProps {
 
 export function LoginForm({ isAdmin = false }: LoginFormProps) {
   const router = useRouter();
-  const [formData, setFormData] = useState<FormData>({
-    email: "",
-    password: "",
-  });
-  const [error, setError] = useState<string>("");
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string>("");
 
-  const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
-    setError("");
-  };
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<LoginFormData>({
+    resolver: zodResolver(loginSchema),
+  });
 
-  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
+  const onSubmit = async (data: LoginFormData) => {
     setIsLoading(true);
     setError("");
 
     try {
       const result = await signIn("credentials", {
-        email: formData.email,
-        password: formData.password,
+        email: data.email,
+        password: data.password,
         redirect: false,
       });
 
@@ -103,13 +101,7 @@ export function LoginForm({ isAdmin = false }: LoginFormProps) {
     <div className="w-full max-w-md space-y-6">
       {/* Form Title */}
       <div className="text-center">
-        {/* <h2 className="text-2xl font-bold text-gray-900">
-          {isAdmin ? 'Admin Login' : 'Welcome to Edwom Online'}
-        </h2> */}
-        {/* <div className="grid place-content-center">
-          <img src="/assets/EdwomLogo.png" alt="logo" />
-        </div> */}
-        <p className="mt-2 text-sm text-gray-600">
+        <p className="text-sm text-gray-600">
           {isAdmin
             ? "Login to your admin account"
             : "Login in to your account or create a new one"}
@@ -118,73 +110,59 @@ export function LoginForm({ isAdmin = false }: LoginFormProps) {
 
       {/* Error Message */}
       {error && (
-        <div className="rounded-md bg-red-50 p-4">
-          <p className="text-sm font-medium text-red-800">{error}</p>
+        <div className="rounded-lg bg-red-50 p-4 border border-red-200">
+          <p className="text-sm text-red-800">{error}</p>
         </div>
       )}
 
       {/* Email/Password Form */}
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
         {/* Email Field */}
-        <div>
-          <label
-            htmlFor="email"
-            className="block text-sm font-medium text-gray-700"
-          >
-            Email Address
-          </label>
-          <input
-            type="email"
+        <div className="space-y-2">
+          <Label htmlFor="email">Email Address</Label>
+          <Input
             id="email"
-            name="email"
-            value={formData.email}
-            onChange={handleChange}
-            required
-            disabled={isLoading}
-            className="mt-1 block w-full rounded-lg border border-gray-300 px-4 py-2 text-gray-900 placeholder-gray-400 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary disabled:bg-gray-100"
+            type="email"
             placeholder="your@email.com"
+            disabled={isLoading}
+            {...register("email")}
+            aria-invalid={!!errors.email}
           />
+          {errors.email && (
+            <p className="text-sm text-red-600">{errors.email.message}</p>
+          )}
         </div>
 
         {/* Password Field */}
-        <div>
+        <div className="space-y-2">
           <div className="flex items-center justify-between">
-            <label
-              htmlFor="password"
-              className="block text-sm font-medium text-gray-700"
-            >
-              Password
-            </label>
-          </div>
-          <input
-            type="password"
-            id="password"
-            name="password"
-            value={formData.password}
-            onChange={handleChange}
-            required
-            disabled={isLoading}
-            className="mt-1 block w-full rounded-lg border border-gray-300 px-4 py-2 text-gray-900 placeholder-gray-400 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary disabled:bg-gray-100"
-            placeholder="••••••••"
-          />
-          <div className="flex justify-end"> {!isAdmin && (
-              <a
+            <Label htmlFor="password">Password</Label>
+            {!isAdmin && (
+              <Link
                 href="/auth/forgot-password"
-                className="text-sm text-primary underline hover:text-primary/80"
+                className="text-xs font-semibold text-primary hover:text-primary/90"
               >
                 Forgot password?
-              </a>
-            )}</div>
+              </Link>
+            )}
+          </div>
+          <Input
+            id="password"
+            type="password"
+            placeholder="••••••••"
+            disabled={isLoading}
+            {...register("password")}
+            aria-invalid={!!errors.password}
+          />
+          {errors.password && (
+            <p className="text-sm text-red-600">{errors.password.message}</p>
+          )}
         </div>
 
         {/* Submit Button */}
-        <button
-          type="submit"
-          disabled={isLoading}
-          className="w-full rounded-lg bg-primary px-4 py-2 font-semibold text-white hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-        >
-          {isLoading ? "Login in..." : "Login"}
-        </button>
+        <Button type="submit" disabled={isLoading} className="w-full">
+          {isLoading ? "Logging in..." : "Login"}
+        </Button>
       </form>
 
       {/* Divider */}
@@ -202,11 +180,12 @@ export function LoginForm({ isAdmin = false }: LoginFormProps) {
           </div>
 
           {/* Google Sign In Button */}
-          <button
+          <Button
             type="button"
             onClick={handleGoogleSignIn}
             disabled={isLoading}
-            className="w-full flex items-center justify-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 font-medium text-gray-900 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            variant="outline"
+            className="w-full"
           >
             <svg
               width="20"
@@ -232,18 +211,18 @@ export function LoginForm({ isAdmin = false }: LoginFormProps) {
                 fill="#EA4335"
               />
             </svg>
-            {isLoading ? "Login in..." : "Sign in with Google"}
-          </button>
+            {isLoading ? "Signing in..." : "Sign in with Google"}
+          </Button>
 
           {/* Sign Up Link */}
           <p className="text-center text-sm text-gray-600">
-            Don't have an account?
-            <a
+            Don't have an account?{" "}
+            <Link
               href="/auth/signup"
-              className="font-semibold text-primary hover:text-primary/80"
+              className="font-semibold text-primary hover:text-primary/90"
             >
               Sign up here
-            </a>
+            </Link>
           </p>
         </>
       )}

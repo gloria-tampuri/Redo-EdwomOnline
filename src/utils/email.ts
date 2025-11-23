@@ -26,7 +26,7 @@ export async function sendPasswordResetEmail({
     }
 
     const data = await resend.emails.send({
-      from: 'gloriatampuri22@gmail.com',  // Use Resend's test domain
+      from: 'onboarding@resend.dev',  // Resend test domain - works immediately without verification
       to: email,
       subject: 'Reset Your Edwom Online Password',
       html: `

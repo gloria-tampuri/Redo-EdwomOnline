@@ -3,18 +3,12 @@
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import * as z from 'zod';
 import { useForgotPassword } from '@/hooks/usePasswordReset';
+import { forgotPasswordSchema, type ForgotPasswordFormData } from '@/app/types/schemas';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import Link from 'next/link';
-
-const forgotPasswordSchema = z.object({
-  email: z.string().email('Please enter a valid email address'),
-});
-
-type ForgotPasswordFormData = z.infer<typeof forgotPasswordSchema>;
 
 export function ForgotPasswordForm() {
   const [submitSuccess, setSubmitSuccess] = useState(false);
@@ -88,29 +82,23 @@ export function ForgotPasswordForm() {
       )}
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-        <div>
-          <Label htmlFor="email" className="text-gray-700">
-            Email Address
-          </Label>
+        <div className="space-y-2">
+          <Label htmlFor="email">Email Address</Label>
 
           <Input
             id="email"
             type="email"
             placeholder="your@email.com"
-            className="mt-3"
             {...register('email')}
             disabled={isPending}
+            aria-invalid={!!errors.email}
           />
           {errors.email && (
-            <p className="mt-1 text-sm text-red-600">{errors.email.message}</p>
+            <p className="text-sm text-red-600">{errors.email.message}</p>
           )}
         </div>
 
-        <Button
-          type="submit"
-          disabled={isPending}
-          className="w-full bg-primary text-white font-semibold py-2 rounded-lg transition-all duration-200"
-        >
+        <Button type="submit" disabled={isPending} className="w-full">
           {isPending ? 'Sending...' : 'Send Reset Link'}
         </Button>
       </form>

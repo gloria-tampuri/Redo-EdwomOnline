@@ -3,25 +3,13 @@
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import * as z from 'zod';
 import { useResetPassword } from '@/hooks/usePasswordReset';
+import { resetPasswordSchema, type ResetPasswordFormData } from '@/app/types/schemas';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-
-const resetPasswordSchema = z
-  .object({
-    newPassword: z.string().min(6, 'Password must be at least 6 characters'),
-    confirmPassword: z.string(),
-  })
-  .refine((data) => data.newPassword === data.confirmPassword, {
-    message: 'Passwords do not match',
-    path: ['confirmPassword'],
-  });
-
-type ResetPasswordFormData = z.infer<typeof resetPasswordSchema>;
 
 interface ResetPasswordFormProps {
   token: string;
@@ -45,7 +33,7 @@ export function ResetPasswordForm({ token, email }: ResetPasswordFormProps) {
 
   const onSubmit = (data: ResetPasswordFormData) => {
     resetPassword(
-      { token, newPassword: data.newPassword },
+      { token, newPassword: data.password },
       {
         onSuccess: () => {
           reset();
@@ -96,18 +84,18 @@ export function ResetPasswordForm({ token, email }: ResetPasswordFormProps) {
       )}
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-        <div>
-          <Label htmlFor="newPassword" className="text-gray-700">
+        <div className="space-y-2">
+          <Label htmlFor="password">
             New Password
           </Label>
-          <div className="relative mt-1">
+          <div className="relative">
             <Input
-              id="newPassword"
+              id="password"
               type={showPassword ? 'text' : 'password'}
               placeholder="Enter new password"
-              className="pr-10"
-              {...register('newPassword')}
+              {...register('password')}
               disabled={isPending}
+              aria-invalid={!!errors.password}
             />
             <button
               type="button"
@@ -117,23 +105,23 @@ export function ResetPasswordForm({ token, email }: ResetPasswordFormProps) {
               {showPassword ? '🙈' : '👁️'}
             </button>
           </div>
-          {errors.newPassword && (
-            <p className="mt-1 text-sm text-red-600">{errors.newPassword.message}</p>
+          {errors.password && (
+            <p className="text-sm text-red-600">{errors.password.message}</p>
           )}
         </div>
 
-        <div>
-          <Label htmlFor="confirmPassword" className="text-gray-700">
+        <div className="space-y-2">
+          <Label htmlFor="confirmPassword">
             Confirm Password
           </Label>
-          <div className="relative mt-1">
+          <div className="relative">
             <Input
               id="confirmPassword"
               type={showConfirmPassword ? 'text' : 'password'}
               placeholder="Confirm new password"
-              className="pr-10"
               {...register('confirmPassword')}
               disabled={isPending}
+              aria-invalid={!!errors.confirmPassword}
             />
             <button
               type="button"
@@ -144,22 +132,18 @@ export function ResetPasswordForm({ token, email }: ResetPasswordFormProps) {
             </button>
           </div>
           {errors.confirmPassword && (
-            <p className="mt-1 text-sm text-red-600">{errors.confirmPassword.message}</p>
+            <p className="text-sm text-red-600">{errors.confirmPassword.message}</p>
           )}
         </div>
 
-        <Button
-          type="submit"
-          disabled={isPending}
-          className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-semibold py-2 rounded-lg transition-all duration-200"
-        >
+        <Button type="submit" disabled={isPending} className="w-full">
           {isPending ? 'Resetting...' : 'Reset Password'}
         </Button>
       </form>
 
       <div className="text-center">
         <p className="text-sm text-gray-600">
-          <Link href="/auth/login" className="text-blue-600 hover:text-blue-700 font-semibold">
+          <Link href="/auth/login" className="font-semibold text-primary hover:text-primary/90">
             Back to Sign In
           </Link>
         </p>
