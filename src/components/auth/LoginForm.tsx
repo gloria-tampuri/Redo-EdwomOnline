@@ -1,11 +1,17 @@
-import React, { useState, FormEvent, ChangeEvent } from 'react';
-import { signIn } from 'next-auth/react';
-import { useRouter } from 'next/navigation';
+'use client';
 
-interface FormData {
-  email: string;
-  password: string;
-}
+import React, { useState } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { signIn } from "next-auth/react";
+import { useRouter } from "next/navigation";
+import { Eye, EyeOff } from "lucide-react";
+import { loginSchema, type LoginFormData } from "@/app/types/schemas";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Logo } from "@/components/ui/logo";
+import Link from "next/link";
 
 interface LoginFormProps {
   isAdmin?: boolean;
@@ -13,166 +19,201 @@ interface LoginFormProps {
 
 export function LoginForm({ isAdmin = false }: LoginFormProps) {
   const router = useRouter();
-  const [formData, setFormData] = useState<FormData>({
-    email: '',
-    password: '',
-  });
-  const [error, setError] = useState<string>('');
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string>("");
+  const [showPassword, setShowPassword] = useState(false);
 
-  const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
-    setError('');
-  };
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<LoginFormData>({
+    resolver: zodResolver(loginSchema),
+  });
 
-  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
+  const onSubmit = async (data: LoginFormData) => {
     setIsLoading(true);
-    setError('');
+    setError("");
 
     try {
-      const result = await signIn('credentials', {
-        email: formData.email,
-        password: formData.password,
+      const result = await signIn("credentials", {
+        email: data.email,
+        password: data.password,
         redirect: false,
       });
 
       if (!result?.ok) {
-        setError(result?.error || 'Sign in failed. Please try again.');
+        setError(result?.error || "Sign in failed. Please try again.");
         setIsLoading(false);
         return;
       }
 
-      // Check user role if admin page
-      if (isAdmin) {
-        const sessionRes = await fetch('/api/signin');
-        const sessionData = await sessionRes.json();
+      // Fetch user role from database by email
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      const userRes = await fetch(`/api/user-role?email=${encodeURIComponent(data.email)}`);
+      const userData = await userRes.json();
+      
+      console.log("User data from API:", userData);
 
-        if (sessionData.user?.role !== 'admin') {
-          setError('Admin access required. Please contact your administrator.');
-          await signIn('credentials', { redirect: false });
+      if (!userRes.ok) {
+        console.error("Failed to fetch user role");
+        setError("Failed to determine user access level. Please try again.");
+        setIsLoading(false);
+        return;
+      }
+
+      const userRole = userData.role;
+      console.log("User role:", userRole);
+
+      // Determine redirect URL based on role
+      let redirectUrl = "/";
+      
+      if (isAdmin) {
+        if (userRole !== "admin" && userRole !== "super-admin") {
+          setError("Admin access required. Please contact your administrator.");
           setIsLoading(false);
           return;
         }
+        redirectUrl = "/admin/dashboard";
+        console.log("Admin/Super-admin accessing admin form, redirecting to:", redirectUrl);
+      } else {
+        if (userRole === "super-admin" || userRole === "admin") {
+          redirectUrl = "/admin/dashboard";
+          console.log("Admin/Super-admin accessing regular form, redirecting to:", redirectUrl);
+        } else {
+          redirectUrl = "/";
+          console.log("Regular user, redirecting to:", redirectUrl);
+        }
       }
 
-      // Redirect on success
-      const redirectUrl = isAdmin ? '/admin/dashboard' : '/';
-      router.push(redirectUrl);
+      // Use window.location for more reliable redirect after auth
+      console.log("Final redirect to:", redirectUrl);
+      setTimeout(() => {
+        window.location.href = redirectUrl;
+      }, 300);
     } catch (err) {
-      console.error('Sign in error:', err);
-      setError('An unexpected error occurred. Please try again.');
+      console.error("Sign in error:", err);
+      setError("An unexpected error occurred. Please try again.");
       setIsLoading(false);
     }
   };
 
   const handleGoogleSignIn = async () => {
     setIsLoading(true);
-    setError('');
+    setError("");
 
     try {
       if (isAdmin) {
-        setError('Admins must use email and password.');
+        setError("Admins must use email and password.");
         setIsLoading(false);
         return;
       }
 
-      const result = await signIn('google', {
+      const result = await signIn("google", {
         redirect: false,
       });
 
       if (!result?.ok) {
-        setError('Google sign in failed. Please try again.');
+        setError("Google sign in failed. Please try again.");
         setIsLoading(false);
         return;
       }
 
-      router.push('/');
+      router.push("/");
     } catch (err) {
-      console.error('Google sign in error:', err);
-      setError('An unexpected error occurred. Please try again.');
+      console.error("Google sign in error:", err);
+      setError("An unexpected error occurred. Please try again.");
       setIsLoading(false);
     }
   };
 
   return (
     <div className="w-full max-w-md space-y-6">
+      {/* Logo - Click to go home */}
+      <div className="text-center">
+        <Logo href="/" />
+      </div>
+            <h2 className="text-[32px] font-bold text-card-foreground text-center">Login</h2>
+
       {/* Form Title */}
       <div className="text-center">
-        <h2 className="text-2xl font-bold text-gray-900">
-          {isAdmin ? 'Admin Login' : 'Welcome to Edwom Online'}
-        </h2>
-        <p className="mt-2 text-sm text-gray-600">
+        <p className="text-sm text-gray-600">
           {isAdmin
-            ? 'Sign in to your admin account'
-            : 'Sign in to your account or create a new one'}
+            ? "Login to your admin account"
+            : "Login in to your account or create a new one"}
         </p>
       </div>
 
       {/* Error Message */}
       {error && (
-        <div className="rounded-md bg-red-50 p-4">
-          <p className="text-sm font-medium text-red-800">{error}</p>
+        <div className="rounded-lg bg-red-50 p-4 border border-red-200">
+          <p className="text-sm text-red-800">{error}</p>
         </div>
       )}
 
       {/* Email/Password Form */}
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
         {/* Email Field */}
-        <div>
-          <label htmlFor="email" className="block text-sm font-medium text-gray-700">
-            Email Address
-          </label>
-          <input
-            type="email"
+        <div className="space-y-2">
+          <Label htmlFor="email">Email Address</Label>
+          <Input
             id="email"
-            name="email"
-            value={formData.email}
-            onChange={handleChange}
-            required
-            disabled={isLoading}
-            className="mt-1 block w-full rounded-lg border border-gray-300 px-4 py-2 text-gray-900 placeholder-gray-400 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary disabled:bg-gray-100"
+            type="email"
             placeholder="your@email.com"
+            disabled={isLoading}
+            {...register("email")}
+            aria-invalid={!!errors.email}
           />
+          {errors.email && (
+            <p className="text-sm text-red-600">{errors.email.message}</p>
+          )}
         </div>
 
         {/* Password Field */}
-        <div>
+        <div className="space-y-2">
           <div className="flex items-center justify-between">
-            <label htmlFor="password" className="block text-sm font-medium text-gray-700">
-              Password
-            </label>
+            <Label htmlFor="password">Password</Label>
             {!isAdmin && (
-              <a href="/auth/forgot-password" className="text-sm text-primary hover:text-primary/80">
+              <Link
+                href="/auth/forgot-password"
+                className="text-xs font-semibold text-primary hover:text-primary/90"
+              >
                 Forgot password?
-              </a>
+              </Link>
             )}
           </div>
-          <input
-            type="password"
-            id="password"
-            name="password"
-            value={formData.password}
-            onChange={handleChange}
-            required
-            disabled={isLoading}
-            className="mt-1 block w-full rounded-lg border border-gray-300 px-4 py-2 text-gray-900 placeholder-gray-400 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary disabled:bg-gray-100"
-            placeholder="••••••••"
-          />
+          <div className="relative">
+            <Input
+              id="password"
+              type={showPassword ? "text" : "password"}
+              placeholder="••••••••"
+              disabled={isLoading}
+              {...register("password")}
+              aria-invalid={!!errors.password}
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 transition-colors"
+              tabIndex={-1}
+            >
+              {showPassword ? (
+                <EyeOff size={20} />
+              ) : (
+                <Eye size={20} />
+              )}
+            </button>
+          </div>
+          {errors.password && (
+            <p className="text-sm text-red-600">{errors.password.message}</p>
+          )}
         </div>
 
         {/* Submit Button */}
-        <button
-          type="submit"
-          disabled={isLoading}
-          className="w-full rounded-lg bg-primary px-4 py-2 font-semibold text-white hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-        >
-          {isLoading ? 'Signing in...' : 'Sign In'}
-        </button>
+        <Button type="submit" disabled={isLoading} className="w-full">
+          {isLoading ? "Logging in..." : "Login"}
+        </Button>
       </form>
 
       {/* Divider */}
@@ -183,16 +224,19 @@ export function LoginForm({ isAdmin = false }: LoginFormProps) {
               <div className="w-full border-t border-gray-300" />
             </div>
             <div className="relative flex justify-center text-sm">
-              <span className="bg-white px-2 text-gray-500">Or continue with</span>
+              <span className="bg-white px-2 text-gray-500">
+                Or continue with
+              </span>
             </div>
           </div>
 
           {/* Google Sign In Button */}
-          <button
+          <Button
             type="button"
             onClick={handleGoogleSignIn}
             disabled={isLoading}
-            className="w-full flex items-center justify-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 font-medium text-gray-900 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            variant="outline"
+            className="w-full"
           >
             <svg
               width="20"
@@ -218,15 +262,18 @@ export function LoginForm({ isAdmin = false }: LoginFormProps) {
                 fill="#EA4335"
               />
             </svg>
-            {isLoading ? 'Signing in...' : 'Sign in with Google'}
-          </button>
+            {isLoading ? "Signing in..." : "Sign in with Google"}
+          </Button>
 
           {/* Sign Up Link */}
           <p className="text-center text-sm text-gray-600">
-            Don't have an account?{' '}
-            <a href="/auth/signup" className="font-semibold text-primary hover:text-primary/80">
+            Don't have an account?{" "}
+            <Link
+              href="/auth/signup"
+              className="font-semibold text-primary hover:text-primary/90"
+            >
               Sign up here
-            </a>
+            </Link>
           </p>
         </>
       )}

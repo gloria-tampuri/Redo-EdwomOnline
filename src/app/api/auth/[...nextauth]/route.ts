@@ -45,6 +45,7 @@ export const authOptions: NextAuthOptions = {
     GoogleProvider({
       clientId: process.env.GOOGLE_CLIENT_ID ?? '',
       clientSecret: process.env.GOOGLE_CLIENT_SECRET ?? '',
+      allowDangerousEmailAccountLinking: true,
     }),
   ],
   pages: {
@@ -67,20 +68,28 @@ export const authOptions: NextAuthOptions = {
       }
       // On Google OAuth, fetch/create user in DB
       if (account?.provider === 'google') {
-        await dbConnect();
-        let dbUser = await User.findOne({ email: token.email }).exec();
-        if (!dbUser) {
-          // Create new user from Google OAuth
-          dbUser = await User.create({
-            email: token.email,
-            name: token.name,
-            passwordHash: '', // OAuth users have no password
-            role: 'user',
-            isEmailVerified: true,
-          });
+        try {
+          await dbConnect();
+          let dbUser = await User.findOne({ email: token.email }).exec();
+          if (!dbUser) {
+            // Create new user from Google OAuth
+            dbUser = await User.create({
+              email: token.email,
+              name: token.name ?? 'User',
+              passwordHash: '', // OAuth users have no password
+              role: 'user',
+              isEmailVerified: true,
+            });
+            console.log('✅ New Google OAuth user created:', dbUser.email);
+          } else {
+            console.log('✅ Existing user found:', dbUser.email);
+          }
+          token.id = (dbUser as any)._id.toString();
+          token.role = (dbUser as any).role;
+        } catch (error) {
+          console.error('❌ Error in JWT callback:', error);
+          throw error;
         }
-        token.id = (dbUser as any)._id.toString();
-        token.role = (dbUser as any).role;
       }
       return token;
     },
