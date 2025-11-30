@@ -2,9 +2,16 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { X, Plus, Trash2, Search } from 'lucide-react';
+import { Plus, Trash2, Search, Loader } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import {
+  Drawer,
+  DrawerContent,
+  DrawerHeader,
+  DrawerFooter,
+  DrawerTitle,
+} from '@/components/ui/drawer';
 import {
   Select,
   SelectContent,
@@ -195,32 +202,16 @@ const OrderDetailsDrawer = ({ order, isOpen, onClose, mode: initialMode = 'view'
   const grandTotal = subtotal - discount + deliveryFee + tax;
 
   return (
-    <div className="fixed inset-0 z-50">
-      {/* Backdrop */}
-      <div
-        className="absolute inset-0 bg-black/50 transition-opacity"
-        onClick={onClose}
-      />
+    <Drawer open={isOpen} onOpenChange={onClose}>
+      <DrawerContent className="overflow-y-auto">
+        <DrawerHeader>
+          <DrawerTitle>
+            {mode === 'create' ? 'Add Order' : mode === 'edit' ? 'Edit Order' : 'Order Details'}
+          </DrawerTitle>
+        </DrawerHeader>
 
-      {/* Drawer */}
-      <div className="absolute right-0 top-0 h-full w-96 bg-white shadow-xl flex flex-col overflow-hidden">
-        {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-gray-200">
-          <h2 className="text-lg font-bold text-gray-900">
-            {mode === 'create' ? 'CREATE ORDER' : mode === 'edit' ? 'EDIT ORDER' : 'ORDER DETAILS'}
-          </h2>
-          <button
-            onClick={onClose}
-            className="p-1 hover:bg-gray-100 rounded-lg transition"
-          >
-            <X className="w-5 h-5 text-gray-600" />
-          </button>
-        </div>
-
-        {/* Content */}
-        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto">
-          <div className="p-6 space-y-6">
-            {/* Order Summary / Details */}
+        <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Order Summary / Details */}
             <div>
               <h3 className="text-sm font-semibold text-gray-900 mb-3">
                 {isEditing ? 'Order Details' : 'Order Summary'}
@@ -581,49 +572,55 @@ const OrderDetailsDrawer = ({ order, isOpen, onClose, mode: initialMode = 'view'
                 <span>₵{grandTotal.toLocaleString()}</span>
               </div>
             </div>
-          </div>
 
           {/* Footer */}
-          <div className="border-t border-gray-200 p-6 space-y-3">
+          <DrawerFooter>
             {isEditing && (
-              <div className="flex gap-3">
-                <button
-                  type="submit"
-                  disabled={createOrderMutation.isPending || updateOrderMutation.isPending}
-                  className="flex-1 bg-primary hover:bg-primary/90 text-white py-2 rounded font-medium disabled:opacity-50"
-                >
-                  {createOrderMutation.isPending || updateOrderMutation.isPending ? 'Saving...' : 'Save Order'}
-                </button>
+              <>
                 <button
                   type="button"
                   onClick={() => (mode === 'create' ? onClose() : setMode('view'))}
-                  className="flex-1 border border-gray-300 text-gray-700 py-2 rounded font-medium hover:bg-gray-50"
+                  className="px-4 py-2 border border-gray-300 text-gray-700 rounded font-medium hover:bg-gray-50 text-sm"
                 >
                   Cancel
                 </button>
-              </div>
+                <button
+                  type="submit"
+                  disabled={createOrderMutation.isPending || updateOrderMutation.isPending}
+                  className="px-4 py-2 bg-[#556B2F] hover:bg-[#556B2F]/90 text-white rounded font-medium disabled:opacity-50 text-sm flex items-center gap-2"
+                >
+                  {createOrderMutation.isPending || updateOrderMutation.isPending ? (
+                    <>
+                      <Loader className="w-4 h-4 animate-spin" />
+                      Saving...
+                    </>
+                  ) : (
+                    'Save Order'
+                  )}
+                </button>
+              </>
             )}
             {!isEditing && (
-              <div className="flex gap-3">
+              <>
                 <button
                   type="button"
                   onClick={() => setMode('edit')}
-                  className="flex-1 border border-gray-300 text-gray-700 py-2 rounded font-medium hover:bg-gray-50"
+                  className="flex-1 border border-gray-300 text-gray-700 px-4 py-2 rounded font-medium hover:bg-gray-50 text-sm"
                 >
                   Edit Order
                 </button>
                 <button
                   type="button"
-                  className="flex-1 bg-primary hover:bg-primary/90 text-white py-2 rounded font-medium"
+                  className="flex-1 bg-[#556B2F] hover:bg-[#556B2F]/90 text-white px-4 py-2 rounded font-medium text-sm"
                 >
                   Print Invoice
                 </button>
-              </div>
+              </>
             )}
-          </div>
+          </DrawerFooter>
         </form>
-      </div>
-    </div>
+      </DrawerContent>
+    </Drawer>
   );
 };
 

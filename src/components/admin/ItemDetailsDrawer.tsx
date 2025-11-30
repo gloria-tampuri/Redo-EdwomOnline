@@ -2,12 +2,26 @@
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { X, Upload, Trash2, Loader, Crop } from 'lucide-react';
+import { Upload, Trash2, Loader, Crop } from 'lucide-react';
 import Cropper from 'react-easy-crop';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { uploadToCloudinary } from '@/utils/cloudinary';
 import { getCroppedImage } from '@/utils/cropImage';
+import {
+  Drawer,
+  DrawerContent,
+  DrawerHeader,
+  DrawerFooter,
+  DrawerTitle,
+} from '@/components/ui/drawer';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogFooter,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import {
   Select,
   SelectContent,
@@ -210,35 +224,84 @@ const ItemDetailsDrawer = ({ item, isOpen, onClose, mode: initialMode = 'view', 
 
   if (!isOpen) return null;
 
-  return (
-    <div className="fixed inset-0 z-50">
-      {/* Backdrop */}
-      <div
-        className="absolute inset-0 bg-black/50 transition-opacity"
-        onClick={onClose}
-      />
-
-      {/* Drawer */}
-      <div className="absolute right-0 top-0 h-full w-96 bg-white shadow-xl flex flex-col overflow-hidden">
-        {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-gray-200">
-          <h2 className="text-lg font-bold text-gray-900">
-            {mode === 'create' ? 'ADD ITEM' : mode === 'edit' ? 'EDIT ITEM' : 'ITEM DETAILS'}
-          </h2>
-          <button
-            onClick={onClose}
-            className="p-1 hover:bg-gray-100 rounded-lg transition"
-          >
-            <X className="w-5 h-5 text-gray-600" />
-          </button>
-        </div>
-
-        {/* Content */}
-        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto">
-          <div className="p-6 space-y-6">
-            {/* Product Info */}
+  // Render cropper modal
+  if (showCropper) {
+    return (
+      <Dialog open={showCropper} onOpenChange={setShowCropper}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Crop Image</DialogTitle>
+          </DialogHeader>
+          <div className="relative w-full h-96 bg-gray-100">
+            <Cropper
+              image={rawImageSrc}
+              crop={crop}
+              zoom={zoom}
+              aspect={1}
+              cropShape="round"
+              showGrid={false}
+              onCropChange={setCrop}
+              onCropComplete={handleCropComplete}
+              onZoomChange={setZoom}
+            />
+          </div>
+          <div className="space-y-3">
             <div>
-              <h3 className="text-sm font-semibold text-gray-900 mb-3">Product Info</h3>
+              <label className="text-sm text-gray-600 block mb-2">Zoom</label>
+              <input
+                type="range"
+                value={zoom}
+                min={1}
+                max={3}
+                step={0.1}
+                onChange={(e) => setZoom(parseFloat(e.target.value))}
+                className="w-full"
+              />
+            </div>
+            <DialogFooter>
+              <button
+                type="button"
+                onClick={handleCancelCrop}
+                disabled={isUploadingImage}
+                className="px-3 py-2 border border-gray-300 text-gray-700 rounded font-medium hover:bg-gray-50 disabled:opacity-50 text-sm"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmCrop}
+                disabled={isUploadingImage}
+                className="px-3 py-2 bg-[#556B2F] hover:bg-[#556B2F]/90 text-white rounded font-medium disabled:opacity-50 flex items-center gap-2 text-sm"
+              >
+                {isUploadingImage ? (
+                  <>
+                    <Loader className="w-4 h-4 animate-spin" />
+                    Uploading...
+                  </>
+                ) : (
+                  'Confirm & Upload'
+                )}
+              </button>
+            </DialogFooter>
+          </div>
+        </DialogContent>
+      </Dialog>
+    );
+  }
+
+  return (
+    <Drawer open={isOpen} onOpenChange={onClose}>
+      <DrawerContent className="overflow-y-auto">
+        <DrawerHeader>
+          <DrawerTitle>
+            {mode === 'create' ? 'Add Item' : mode === 'edit' ? 'Edit Item' : 'Item Details'}
+          </DrawerTitle>
+        </DrawerHeader>
+
+        <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Product Info */}
+          <div>
+            <h3 className="text-sm font-semibold text-gray-900 mb-3">Product Info</h3>
               <div className="space-y-3">
                 <div>
                   <label className="text-sm text-gray-600 block mb-1">Item Name</label>
@@ -447,118 +510,46 @@ const ItemDetailsDrawer = ({ item, isOpen, onClose, mode: initialMode = 'view', 
               </div>
             </div>
 
-            {/* Image Cropper Modal */}
-            {showCropper && rawImageSrc && (
-              <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50">
-                <div className="bg-white rounded-lg shadow-xl w-full max-w-md mx-4 p-4">
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
-                      <Crop className="w-5 h-5" />
-                      Crop Image
-                    </h3>
-                    <button
-                      onClick={handleCancelCrop}
-                      className="p-1 hover:bg-gray-100 rounded-lg"
-                    >
-                      <X className="w-5 h-5 text-gray-600" />
-                    </button>
-                  </div>
-
-                  {/* Cropper */}
-                  <div className="relative w-full bg-gray-100 rounded-lg overflow-hidden mb-4" style={{ paddingBottom: '100%' }}>
-                    <div className="absolute inset-0">
-                      <Cropper
-                        image={rawImageSrc}
-                        crop={crop}
-                        zoom={zoom}
-                        aspect={1} // 1:1 square aspect ratio
-                        cropShape="rect"
-                        showGrid={true}
-                        onCropChange={setCrop}
-                        onCropComplete={handleCropComplete}
-                        onZoomChange={setZoom}
-                      />
-                    </div>
-                  </div>
-
-                  {/* Zoom Slider */}
-                  <div className="mb-4">
-                    <label className="text-sm text-gray-600 block mb-2">Zoom</label>
-                    <input
-                      type="range"
-                      min="1"
-                      max="3"
-                      step="0.1"
-                      value={zoom}
-                      onChange={(e) => setZoom(parseFloat(e.target.value))}
-                      className="w-full"
-                    />
-                  </div>
-
-                  {/* Actions */}
-                  <div className="flex gap-3">
-                    <button
-                      onClick={handleCancelCrop}
-                      disabled={isUploadingImage}
-                      className="flex-1 border border-gray-300 hover:bg-gray-50 text-gray-900 py-2 rounded font-medium disabled:opacity-50"
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      onClick={handleConfirmCrop}
-                      disabled={isUploadingImage}
-                      className="flex-1 bg-primary hover:bg-primary/90 text-white py-2 rounded font-medium disabled:opacity-50 flex items-center justify-center gap-2"
-                    >
-                      {isUploadingImage ? (
-                        <>
-                          <Loader className="w-4 h-4 animate-spin" />
-                          Uploading...
-                        </>
-                      ) : (
-                        'Crop & Upload'
-                      )}
-                    </button>
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Footer */}
-          <div className="border-t border-gray-200 p-6 space-y-3">
+          {/* Footer Actions */}
+          <DrawerFooter>
             {isEditing && (
-              <div className="flex gap-3">
-                <button
-                  type="submit"
-                  disabled={createItemMutation.isPending || updateItemMutation.isPending}
-                  className="flex-1 bg-primary hover:bg-primary/90 text-white py-2 rounded font-medium disabled:opacity-50"
-                >
-                  {createItemMutation.isPending || updateItemMutation.isPending ? 'Saving...' : 'Save Item'}
-                </button>
+              <>
                 <button
                   type="button"
                   onClick={() => (mode === 'create' ? onClose() : setMode('view'))}
-                  className="flex-1 border border-gray-300 text-gray-700 py-2 rounded font-medium hover:bg-gray-50"
+                  className="px-4 py-2 border border-gray-300 text-gray-700 rounded font-medium hover:bg-gray-50 text-sm"
                 >
                   Cancel
                 </button>
-              </div>
+                <button
+                  type="submit"
+                  disabled={createItemMutation.isPending || updateItemMutation.isPending}
+                  className="px-4 py-2 bg-[#556B2F] hover:bg-[#556B2F]/90 text-white rounded font-medium disabled:opacity-50 text-sm flex items-center gap-2"
+                >
+                  {createItemMutation.isPending || updateItemMutation.isPending ? (
+                    <>
+                      <Loader className="w-4 h-4 animate-spin" />
+                      Saving...
+                    </>
+                  ) : (
+                    'Save'
+                  )}
+                </button>
+              </>
             )}
             {!isEditing && (
-              <div className="flex gap-3">
-                <button
-                  type="button"
-                  onClick={() => setMode('edit')}
-                  className="flex-1 border border-gray-300 text-gray-700 py-2 rounded font-medium hover:bg-gray-50"
-                >
-                  Edit Item
-                </button>
-              </div>
+              <button
+                type="button"
+                onClick={() => setMode('edit')}
+                className="w-full px-4 py-2 border border-gray-300 text-gray-700 rounded font-medium hover:bg-gray-50 text-sm"
+              >
+                Edit Item
+              </button>
             )}
-          </div>
+          </DrawerFooter>
         </form>
-      </div>
-    </div>
+      </DrawerContent>
+    </Drawer>
   );
 };
 

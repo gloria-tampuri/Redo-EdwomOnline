@@ -126,3 +126,22 @@ export type CreateItemType = z.infer<typeof CreateItemSchema>;
 export const UpdateItemSchema = CreateItemSchema.partial();
 
 export type UpdateItemType = z.infer<typeof UpdateItemSchema>;
+
+/**
+ * Category Schemas
+ */
+export const CreateCategorySchema = z.object({
+  name: z.string().min(1, 'Category name is required').min(2, 'Name must be at least 2 characters'),
+  description: z.string().optional(),
+  icon: z.string().optional(),
+  color: z.string().optional(),
+  image: z.string().optional(), // Cloudinary secure URL
+  status: z.enum(['active', 'inactive']).optional().default('active'),
+});
+
+export type CreateCategoryType = z.infer<typeof CreateCategorySchema>;
+
+export const UpdateCategorySchema = CreateCategorySchema.partial();
+
+export type UpdateCategoryType = z.infer<typeof UpdateCategorySchema>;
+
