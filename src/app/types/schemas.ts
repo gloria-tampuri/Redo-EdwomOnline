@@ -77,3 +77,71 @@ export const resetPasswordSchema = z
   });
 
 export type ResetPasswordFormData = z.infer<typeof resetPasswordSchema>;
+
+
+
+/**
+ * Order Schemas
+ */
+export const CreateOrderSchema = z.object({
+  orderId: z.string().min(1, 'Order ID is required'),
+  customer: z.object({
+    name: z.string().min(1, 'Customer name is required'),
+    phone: z.string().optional(),
+    email: z.string().email('Invalid email').optional(),
+    address: z.string().optional(),
+  }),
+  items: z.array(z.object({
+    name: z.string().min(1, 'Item name is required'),
+    image: z.string().optional(),
+    price: z.number().positive('Price must be positive'),
+    quantity: z.number().positive('Quantity must be positive'),
+    unit: z.string().min(1, 'Unit is required'),
+  })).min(1, 'At least one item is required'),
+  totalAmount: z.number().positive('Total amount must be positive'),
+  deliveryLocation: z.string().optional(),
+  status: z.string().optional(),
+  paymentStatus: z.string().optional(),
+});
+
+export type CreateOrderType = z.infer<typeof CreateOrderSchema>;
+
+/**
+ * Item Schemas
+ */
+export const CreateItemSchema = z.object({
+  name: z.string().min(1, 'Item name is required').min(2, 'Name must be at least 2 characters'),
+  category: z.string().min(1, 'Category is required'),
+  description: z.string().optional(),
+  price: z.number().positive('Price must be positive'),
+  unit: z.string().min(1, 'Unit is required'),
+  discount: z.number().min(0, 'Discount cannot be negative').optional(),
+  stock: z.number().nonnegative('Stock cannot be negative'),
+  status: z.enum(['In Stock', 'Out of Stock', 'Low Stock']).optional(),
+  image: z.string().optional(), // Cloudinary secure URL
+});
+
+export type CreateItemType = z.infer<typeof CreateItemSchema>;
+
+export const UpdateItemSchema = CreateItemSchema.partial();
+
+export type UpdateItemType = z.infer<typeof UpdateItemSchema>;
+
+/**
+ * Category Schemas
+ */
+export const CreateCategorySchema = z.object({
+  name: z.string().min(1, 'Category name is required').min(2, 'Name must be at least 2 characters'),
+  description: z.string().optional(),
+  icon: z.string().optional(),
+  color: z.string().optional(),
+  image: z.string().optional(), // Cloudinary secure URL
+  status: z.enum(['active', 'inactive']).optional().default('active'),
+});
+
+export type CreateCategoryType = z.infer<typeof CreateCategorySchema>;
+
+export const UpdateCategorySchema = CreateCategorySchema.partial();
+
+export type UpdateCategoryType = z.infer<typeof UpdateCategorySchema>;
+
