@@ -1,13 +1,10 @@
 'use client';
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { Upload, Trash2, Loader, Crop } from 'lucide-react';
-import Cropper from 'react-easy-crop';
+import { Loader } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { uploadToCloudinary } from '@/utils/cloudinary';
-import { getCroppedImage } from '@/utils/cropImage';
+import ImageUploadSection from './ImageUploadSection';
 import {
   Drawer,
   DrawerContent,
@@ -16,19 +13,15 @@ import {
   DrawerTitle,
 } from '@/components/ui/drawer';
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogFooter,
-  DialogTitle,
-} from '@/components/ui/dialog';
-import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { useItems } from '@/hooks/useItems';
+import { useCategories } from '@/hooks/useCategories';
+import { useUnits } from '@/hooks/useUnits';
 
 interface Item {
   _id?: string;
@@ -69,73 +62,38 @@ const ItemDetailsDrawer = ({ item, isOpen, onClose, mode: initialMode = 'view', 
   });
   const [imagePreview, setImagePreview] = useState<string>(item?.image || '');
   const [isUploadingImage, setIsUploadingImage] = useState(false);
-  const [rawImageSrc, setRawImageSrc] = useState<string>(''); // For cropper
-  const [showCropper, setShowCropper] = useState(false);
-  const [crop, setCrop] = useState({ x: 0, y: 0 });
-  const [zoom, setZoom] = useState(1);
-  const [croppedAreaPixels, setCroppedAreaPixels] = useState(null);
-  const queryClient = useQueryClient();
+
+  const { createItem, updateItem } = useItems();
+  const { categories } = useCategories();
+  const { units } = useUnits();
 
   // Memoize computed values (must be before useEffect)
   const isReadOnly = useMemo(() => mode === 'view', [mode]);
   const isEditing = useMemo(() => mode === 'edit' || mode === 'create', [mode]);
 
   useEffect(() => {
-    if (item) {
-      setFormData(item);
-      setImagePreview(item.image || '');
-      setMode(initialMode);
-    } else {
-      setMode('create');
-      setFormData({
-        name: '',
-        category: '',
-        description: '',
-        price: 0,
-        unit: '',
-        discount: 0,
-        stock: 0,
-        status: 'In Stock',
-        image: '',
-      });
-      setImagePreview('');
+    if (isOpen) {
+      if (item) {
+        setFormData(item);
+        setImagePreview(item.image || '');
+        setMode(initialMode);
+      } else {
+        setMode('create');
+        setFormData({
+          name: '',
+          category: '',
+          description: '',
+          price: 0,
+          unit: '',
+          discount: 0,
+          stock: 0,
+          status: 'In Stock',
+          image: '',
+        });
+        setImagePreview('');
+      }
     }
   }, [item, initialMode, isOpen]);
-
-  // Mutations
-  const createItemMutation = useMutation({
-    mutationFn: async (data: Item) => {
-      const res = await fetch('/api/items', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
-      });
-      if (!res.ok) throw new Error('Failed to create item');
-      return res.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['items'] });
-      onSuccess?.();
-      onClose();
-    },
-  });
-
-  const updateItemMutation = useMutation({
-    mutationFn: async (data: Item) => {
-      const res = await fetch(`/api/items/${item?._id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
-      });
-      if (!res.ok) throw new Error('Failed to update item');
-      return res.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['items'] });
-      onSuccess?.();
-      setMode('view');
-    },
-  });
 
   const handleInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -147,158 +105,61 @@ const ItemDetailsDrawer = ({ item, isOpen, onClose, mode: initialMode = 'view', 
     }
   }, []);
 
+  const handleImageUpload = useCallback((imageUrl: string) => {
+    setImagePreview(imageUrl);
+    setFormData(prev => ({ ...prev, image: imageUrl }));
+  }, []);
+
+  const handleImageRemove = useCallback(() => {
+    setImagePreview('');
+    setFormData(prev => ({ ...prev, image: '' }));
+  }, []);
+
   const handleSelectChange = useCallback((name: string, value: string) => {
     setFormData(prev => ({ ...prev, [name]: value }));
-  }, []);
-
-  const handleImageUpload = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      // Create preview URL for cropper
-      const reader = new FileReader();
-      reader.onload = () => {
-        setRawImageSrc(reader.result as string);
-        setShowCropper(true);
-        setCrop({ x: 0, y: 0 });
-        setZoom(1);
-      };
-      reader.readAsDataURL(file);
-    }
-  }, []);
-
-  const handleCropComplete = useCallback((_croppedArea: unknown, croppedAreaPixels: any) => {
-    setCroppedAreaPixels(croppedAreaPixels);
-  }, []);
-
-  const handleConfirmCrop = useCallback(async () => {
-    if (!rawImageSrc || !croppedAreaPixels) return;
-
-    try {
-      setIsUploadingImage(true);
-      // Get cropped image as File
-      const croppedFile = await getCroppedImage(rawImageSrc, croppedAreaPixels, 'product-image.jpg');
-      
-      // Upload cropped image to Cloudinary
-      const cloudinaryUrl = await uploadToCloudinary(croppedFile);
-      setFormData(prev => ({ ...prev, image: cloudinaryUrl }));
-      setImagePreview(cloudinaryUrl);
-      setShowCropper(false);
-      setRawImageSrc('');
-    } catch (error) {
-      console.error('Error cropping and uploading image:', error);
-      alert('Failed to crop and upload image. Please try again.');
-    } finally {
-      setIsUploadingImage(false);
-    }
-  }, [rawImageSrc, croppedAreaPixels]);
-
-  const handleCancelCrop = useCallback(() => {
-    setShowCropper(false);
-    setRawImageSrc('');
-    setCrop({ x: 0, y: 0 });
-    setZoom(1);
-  }, []);
-
-  const handleRemoveImage = useCallback(() => {
-    setFormData(prev => ({ ...prev, image: '' }));
-    setImagePreview('');
   }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Convert numeric fields to numbers before submission
-    const dataToSubmit = {
-      ...formData,
-      price: Number(formData.price) || 0,
-      stock: Number(formData.stock) || 0,
-      discount: Number(formData.discount) || 0,
-    };
-    
-    if (mode === 'create') {
-      await createItemMutation.mutateAsync(dataToSubmit);
-    } else if (mode === 'edit') {
-      await updateItemMutation.mutateAsync(dataToSubmit);
+    try {
+      // Convert numeric fields to numbers before submission
+      const dataToSubmit = {
+        ...formData,
+        price: Number(formData.price) || 0,
+        stock: Number(formData.stock) || 0,
+        discount: Number(formData.discount) || 0,
+      };
+      
+      if (mode === 'create') {
+        // For create, remove _id if present since API will generate it
+        const { _id, ...createData } = dataToSubmit as any;
+        await createItem.mutateAsync(createData as any);
+        onSuccess?.();
+        onClose();
+      } else if (mode === 'edit') {
+        await updateItem.mutateAsync({ 
+          id: item?._id!, 
+          data: { ...dataToSubmit, _id: item?._id! } as any 
+        });
+        onSuccess?.();
+        setMode('view');
+      }
+    } catch (error) {
+      console.error('Error submitting item:', error);
     }
   };
-
-  if (!isOpen) return null;
-
-  // Render cropper modal
-  if (showCropper) {
-    return (
-      <Dialog open={showCropper} onOpenChange={setShowCropper}>
-        <DialogContent className="max-w-lg">
-          <DialogHeader>
-            <DialogTitle>Crop Image</DialogTitle>
-          </DialogHeader>
-          <div className="relative w-full h-96 bg-gray-100">
-            <Cropper
-              image={rawImageSrc}
-              crop={crop}
-              zoom={zoom}
-              aspect={1}
-              cropShape="round"
-              showGrid={false}
-              onCropChange={setCrop}
-              onCropComplete={handleCropComplete}
-              onZoomChange={setZoom}
-            />
-          </div>
-          <div className="space-y-3">
-            <div>
-              <label className="text-sm text-gray-600 block mb-2">Zoom</label>
-              <input
-                type="range"
-                value={zoom}
-                min={1}
-                max={3}
-                step={0.1}
-                onChange={(e) => setZoom(parseFloat(e.target.value))}
-                className="w-full"
-              />
-            </div>
-            <DialogFooter>
-              <button
-                type="button"
-                onClick={handleCancelCrop}
-                disabled={isUploadingImage}
-                className="px-3 py-2 border border-gray-300 text-gray-700 rounded font-medium hover:bg-gray-50 disabled:opacity-50 text-sm"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={handleConfirmCrop}
-                disabled={isUploadingImage}
-                className="px-3 py-2 bg-[#556B2F] hover:bg-[#556B2F]/90 text-white rounded font-medium disabled:opacity-50 flex items-center gap-2 text-sm"
-              >
-                {isUploadingImage ? (
-                  <>
-                    <Loader className="w-4 h-4 animate-spin" />
-                    Uploading...
-                  </>
-                ) : (
-                  'Confirm & Upload'
-                )}
-              </button>
-            </DialogFooter>
-          </div>
-        </DialogContent>
-      </Dialog>
-    );
-  }
 
   return (
     <Drawer open={isOpen} onOpenChange={onClose}>
       <DrawerContent className="overflow-y-auto">
-        <DrawerHeader>
+        <DrawerHeader className=" py-4">
           <DrawerTitle>
             {mode === 'create' ? 'Add Item' : mode === 'edit' ? 'Edit Item' : 'Item Details'}
           </DrawerTitle>
         </DrawerHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form onSubmit={handleSubmit} className="space-y-8 py-6">
           {/* Product Info */}
           <div>
             <h3 className="text-sm font-semibold text-gray-900 mb-3">Product Info</h3>
@@ -321,20 +182,19 @@ const ItemDetailsDrawer = ({ item, isOpen, onClose, mode: initialMode = 'view', 
                   <label className="text-sm text-gray-600 block mb-1">Category</label>
                   {isEditing ? (
                     <Select value={formData.category} onValueChange={(value) => handleSelectChange('category', value)}>
-                      <SelectTrigger className="bg-white">
-                        <SelectValue />
+                      <SelectTrigger className="bg-white w-full">
+                        <SelectValue placeholder="Select a category" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="Fruits">Fruits</SelectItem>
-                        <SelectItem value="Vegetables">Vegetables</SelectItem>
-                        <SelectItem value="Grains">Grains</SelectItem>
-                        <SelectItem value="Dairy">Dairy</SelectItem>
-                        <SelectItem value="Meat">Meat</SelectItem>
-                        <SelectItem value="Other">Other</SelectItem>
+                        {categories.map((cat) => (
+                          <SelectItem key={cat._id} value={cat._id!}>
+                            {cat.name}
+                          </SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                   ) : (
-                    <p className="text-gray-900">{formData.category}</p>
+                    <p className="text-gray-900">{categories.find(c => c._id === formData.category)?.name || formData.category}</p>
                   )}
                 </div>
                 <div>
@@ -376,20 +236,19 @@ const ItemDetailsDrawer = ({ item, isOpen, onClose, mode: initialMode = 'view', 
                   <label className="text-sm text-gray-600 block mb-1">Unit</label>
                   {isEditing ? (
                     <Select value={formData.unit} onValueChange={(value) => handleSelectChange('unit', value)}>
-                      <SelectTrigger className="bg-white">
-                        <SelectValue />
+                      <SelectTrigger className="bg-white w-full">
+                        <SelectValue placeholder="Select a unit" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="pcs">Pcs</SelectItem>
-                        <SelectItem value="kg">Kg</SelectItem>
-                        <SelectItem value="g">G</SelectItem>
-                        <SelectItem value="liter">Liter</SelectItem>
-                        <SelectItem value="ml">ML</SelectItem>
-                        <SelectItem value="box">Box</SelectItem>
+                        {units.map((unit) => (
+                          <SelectItem key={unit._id} value={unit._id!}>
+                            {unit.name} ({unit.abbreviation})
+                          </SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                   ) : (
-                    <p className="text-gray-900">{formData.unit}</p>
+                    <p className="text-gray-900">{units.find(u => u._id === formData.unit)?.abbreviation || formData.unit}</p>
                   )}
                 </div>
                 <div>
@@ -431,8 +290,8 @@ const ItemDetailsDrawer = ({ item, isOpen, onClose, mode: initialMode = 'view', 
                   <label className="text-sm text-gray-600 block mb-1">Status</label>
                   {isEditing ? (
                     <Select value={formData.status} onValueChange={(value) => handleSelectChange('status', value)}>
-                      <SelectTrigger className="bg-white">
-                        <SelectValue />
+                      <SelectTrigger className="bg-white w-full">
+                        <SelectValue placeholder="Select a status" />
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="In Stock">In Stock</SelectItem>
@@ -449,69 +308,19 @@ const ItemDetailsDrawer = ({ item, isOpen, onClose, mode: initialMode = 'view', 
 
             {/* Media */}
             <div>
-              <h3 className="text-sm font-semibold text-gray-900 mb-3">Media</h3>
-              <div>
-                <label className="text-sm text-gray-600 block mb-2">Upload Product Image</label>
-                {isEditing ? (
-                  <div>
-                    {imagePreview ? (
-                      <div className="relative mb-3">
-                        <img
-                          src={imagePreview}
-                          alt="Product preview"
-                          className="w-full h-32 rounded-lg object-cover bg-gray-100"
-                        />
-                        <button
-                          type="button"
-                          onClick={handleRemoveImage}
-                          disabled={isUploadingImage}
-                          className="absolute top-1 right-1 bg-red-500 text-white p-1 rounded-lg hover:bg-red-600 disabled:opacity-50"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
-                    ) : (
-                      <label className={`border-2 border-dashed ${isUploadingImage ? 'border-gray-200 bg-gray-50' : 'border-gray-300 hover:border-gray-400'} rounded-lg p-6 text-center cursor-pointer transition`}>
-                        {isUploadingImage ? (
-                          <div className="flex flex-col items-center justify-center gap-2">
-                            <Loader className="w-8 h-8 text-gray-400 animate-spin" />
-                            <p className="text-sm text-gray-600">Uploading to Cloudinary...</p>
-                          </div>
-                        ) : (
-                          <>
-                            <Upload className="w-8 h-8 text-gray-400 mx-auto mb-2" />
-                            <p className="text-sm text-gray-600">Drag or click to upload image</p>
-                            <p className="text-xs text-gray-500 mt-1">Only .jpg, .png and .jpeg files</p>
-                          </>
-                        )}
-                        <input
-                          type="file"
-                          accept="image/jpeg,image/png,image/jpg"
-                          onChange={handleImageUpload}
-                          disabled={isUploadingImage}
-                          className="hidden"
-                        />
-                      </label>
-                    )}
-                  </div>
-                ) : (
-                  imagePreview ? (
-                    <img
-                      src={imagePreview}
-                      alt="Product"
-                      className="w-full h-32 rounded-lg object-cover bg-gray-100"
-                    />
-                  ) : (
-                    <div className="w-full h-32 rounded-lg bg-gray-100 flex items-center justify-center">
-                      <p className="text-gray-500 text-sm">No image</p>
-                    </div>
-                  )
-                )}
-              </div>
+              <h3 className="text-sm font-semibold text-gray-900 mb-3">Upload Product Image</h3>
+              <ImageUploadSection
+                title="Product Image"
+                imagePreview={imagePreview}
+                isEditing={isEditing}
+                isUploading={isUploadingImage}
+                onImageUpload={handleImageUpload}
+                onImageRemove={handleImageRemove}
+              />
             </div>
 
           {/* Footer Actions */}
-          <DrawerFooter>
+          <DrawerFooter className="flex justify-end gap-2 pt-6 mt-8">
             {isEditing && (
               <>
                 <button
@@ -523,10 +332,10 @@ const ItemDetailsDrawer = ({ item, isOpen, onClose, mode: initialMode = 'view', 
                 </button>
                 <button
                   type="submit"
-                  disabled={createItemMutation.isPending || updateItemMutation.isPending}
+                  disabled={createItem.isPending || updateItem.isPending}
                   className="px-4 py-2 bg-[#556B2F] hover:bg-[#556B2F]/90 text-white rounded font-medium disabled:opacity-50 text-sm flex items-center gap-2"
                 >
-                  {createItemMutation.isPending || updateItemMutation.isPending ? (
+                  {createItem.isPending || updateItem.isPending ? (
                     <>
                       <Loader className="w-4 h-4 animate-spin" />
                       Saving...
@@ -541,7 +350,7 @@ const ItemDetailsDrawer = ({ item, isOpen, onClose, mode: initialMode = 'view', 
               <button
                 type="button"
                 onClick={() => setMode('edit')}
-                className="w-full px-4 py-2 border border-gray-300 text-gray-700 rounded font-medium hover:bg-gray-50 text-sm"
+                className="px-4 py-2 border border-gray-300 text-gray-700 rounded font-medium hover:bg-gray-50 text-sm"
               >
                 Edit Item
               </button>

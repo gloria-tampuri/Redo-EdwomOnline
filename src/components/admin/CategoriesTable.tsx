@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   useReactTable,
   getCoreRowModel,
@@ -13,7 +12,7 @@ import {
   SortingState,
   ColumnFiltersState,
 } from '@tanstack/react-table';
-import { Search, Filter, Plus, MoreVertical, Trash2, ChevronUp } from 'lucide-react';
+import { Search, Filter, Plus, MoreVertical } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -24,6 +23,11 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Category } from '@/types/categories-units';
 import CategoryDetailsDrawer from './CategoryDetailsDrawer';
+import { useCategories } from '@/hooks/useCategories';
+import NoItem from '@/components/svgs/no-item';
+import { TablePagination } from './TablePagination';
+import { DeleteConfirmDialog } from './DeleteConfirmDialog';
+import { DataTable } from './DataTable';
 
 interface CategoriesTableProps {
   title?: string;
@@ -36,29 +40,10 @@ const CategoriesTable = ({ title = 'Categories' }: CategoriesTableProps) => {
   const [drawerMode, setDrawerMode] = useState<'create' | 'view' | 'edit'>('view');
   const [sorting, setSorting] = useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
-  const queryClient = useQueryClient();
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [categoryToDelete, setCategoryToDelete] = useState<Category | null>(null);
 
-  // Fetch categories (all including inactive for admin)
-  const { data: categories = [] } = useQuery<Category[]>({
-    queryKey: ['categories', 'all'],
-    queryFn: async () => {
-      const res = await fetch('/api/categories?all=true');
-      if (!res.ok) throw new Error('Failed to fetch categories');
-      return res.json();
-    },
-  });
-
-  // Delete mutation
-  const deleteMutation = useMutation({
-    mutationFn: async (id: string) => {
-      const res = await fetch(`/api/categories/${id}`, { method: 'DELETE' });
-      if (!res.ok) throw new Error('Failed to delete category');
-      return res.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['categories'] });
-    },
-  });
+  const { categories, isLoading, deleteCategory } = useCategories();
 
   const filteredCategories = useMemo(() => {
     if (!searchTerm) return categories;
@@ -161,9 +146,8 @@ const CategoriesTable = ({ title = 'Categories' }: CategoriesTableProps) => {
               <DropdownMenuItem
                 className="text-red-600"
                 onClick={() => {
-                  if (confirm('Are you sure you want to delete this category?')) {
-                    deleteMutation.mutate(row.original._id!);
-                  }
+                  setCategoryToDelete(row.original);
+                  setShowDeleteConfirm(true);
                 }}
               >
                 Delete
@@ -236,13 +220,17 @@ const CategoriesTable = ({ title = 'Categories' }: CategoriesTableProps) => {
             ))}
           </thead>
           <tbody>
-            {table.getRowModel().rows.length === 0 ? (
+            {isLoading ? (
+              <tr>
+                <td colSpan={columns.length} className="px-6 py-8 text-center text-gray-500">
+                  Loading categories...
+                </td>
+              </tr>
+            ) : table.getRowModel().rows.length === 0 ? (
               <tr>
                 <td colSpan={columns.length} className="px-6 py-16 text-center">
                   <div className="flex flex-col items-center justify-center gap-2">
-                    <svg className="w-12 h-12 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
-                    </svg>
+                    <NoItem />
                     <p className="text-gray-500 text-sm font-medium">No categories added</p>
                   </div>
                 </td>
@@ -263,75 +251,7 @@ const CategoriesTable = ({ title = 'Categories' }: CategoriesTableProps) => {
       </div>
 
       {/* Pagination */}
-      {table.getRowModel().rows.length > 0 && (
-        <div className="flex items-center justify-between pt-6 border-t border-gray-200">
-          <p className="text-xs text-gray-600">
-            Showing {table.getState().pagination.pageIndex * table.getState().pagination.pageSize + 1} to{' '}
-            {Math.min(
-              (table.getState().pagination.pageIndex + 1) * table.getState().pagination.pageSize,
-              filteredCategories.length
-            )} of {filteredCategories.length} categories
-          </p>
-          
-          {/* Pagination Controls */}
-          <div className="flex items-center gap-1">
-            {/* Previous Button */}
-            <button
-              onClick={() => table.previousPage()}
-              disabled={!table.getCanPreviousPage()}
-              className="p-2 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed rounded transition"
-            >
-              <ChevronUp className="w-4 h-4 text-gray-600 rotate-180" />
-            </button>
-
-            {/* Page Numbers with Smart Ellipsis */}
-            {Array.from({ length: table.getPageCount() }).map((_, i) => {
-              const pageIndex = table.getState().pagination.pageIndex;
-              const pageCount = table.getPageCount();
-              
-              const isVisible = 
-                i === 0 ||
-                i === pageCount - 1 ||
-                (i >= pageIndex - 1 && i <= pageIndex + 1);
-
-              if (!isVisible && i !== 1 && i !== pageCount - 2) {
-                return null;
-              }
-
-              if ((i === 1 && pageIndex > 2) || (i === pageCount - 2 && pageIndex < pageCount - 3)) {
-                return (
-                  <span key={`ellipsis-${i}`} className="px-1 text-gray-400">
-                    ...
-                  </span>
-                );
-              }
-
-              return (
-                <button
-                  key={i}
-                  onClick={() => table.setPageIndex(i)}
-                  className={`px-2 py-1 text-xs font-medium rounded transition ${
-                    pageIndex === i
-                      ? 'bg-gray-900 text-white'
-                      : 'text-gray-700 hover:bg-gray-100'
-                  }`}
-                >
-                  {i + 1}
-                </button>
-              );
-            })}
-
-            {/* Next Button */}
-            <button
-              onClick={() => table.nextPage()}
-              disabled={!table.getCanNextPage()}
-              className="p-2 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed rounded transition"
-            >
-              <ChevronUp className="w-4 h-4 text-gray-600" />
-            </button>
-          </div>
-        </div>
-      )}
+      <TablePagination table={table} totalItems={filteredCategories.length} />
 
       {/* Drawer */}
       <CategoryDetailsDrawer
@@ -340,6 +260,22 @@ const CategoriesTable = ({ title = 'Categories' }: CategoriesTableProps) => {
         onClose={() => setShowDetails(false)}
         mode={drawerMode}
         onSuccess={() => setShowDetails(false)}
+      />
+
+      {/* Delete Confirmation Dialog */}
+      <DeleteConfirmDialog
+        open={showDeleteConfirm}
+        onOpenChange={setShowDeleteConfirm}
+        title="Delete Category"
+        itemName={categoryToDelete?.name}
+        onConfirm={() => {
+          if (categoryToDelete) {
+            deleteCategory.mutate(categoryToDelete._id!);
+            setShowDeleteConfirm(false);
+            setCategoryToDelete(null);
+          }
+        }}
+        isLoading={deleteCategory.isPending}
       />
     </div>
   );

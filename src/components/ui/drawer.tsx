@@ -87,7 +87,7 @@ function DrawerHeader({
   return (
     <div
       data-slot="drawer-header"
-      className={cn("flex flex-col space-y-1.5 text-center sm:text-left", className)}
+      className={cn("flex items-start justify-between pr-8", className)}
       {...props}
     />
   )
@@ -111,7 +111,7 @@ function DrawerTitle({
   ...props
 }: React.HTMLAttributes<HTMLHeadingElement>) {
   return (
-    <h2
+    <DialogPrimitive.Title
       data-slot="drawer-title"
       className={cn("text-lg font-semibold leading-none tracking-tight", className)}
       {...props}

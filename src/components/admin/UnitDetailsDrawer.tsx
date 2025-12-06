@@ -1,7 +1,6 @@
 'use client';
 
-import { useState, useCallback, useMemo, useEffect } from 'react';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useState, useCallback, useMemo, useEffect, memo } from 'react';
 import { Loader } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import {
@@ -12,6 +11,7 @@ import {
   DrawerTitle,
 } from '@/components/ui/drawer';
 import { Unit } from '@/types/categories-units';
+import { useUnits } from '@/hooks/useUnits';
 
 type DrawerMode = 'create' | 'view' | 'edit';
 
@@ -25,71 +25,33 @@ interface UnitDetailsDrawerProps {
 
 const UnitDetailsDrawer = ({ unit, isOpen, onClose, mode: initialMode = 'view', onSuccess }: UnitDetailsDrawerProps) => {
   const [mode, setMode] = useState<DrawerMode>(initialMode);
-  const [formData, setFormData] = useState<Unit>(
-    unit || {
-      name: '',
-      abbreviation: '',
-      description: '',
-    }
-  );
-  const queryClient = useQueryClient();
+  const [formData, setFormData] = useState<Unit>({
+    name: '',
+    abbreviation: '',
+    description: '',
+  });
+
+  const { createUnit, updateUnit } = useUnits();
 
   const isReadOnly = useMemo(() => mode === 'view', [mode]);
   const isEditing = useMemo(() => mode === 'edit' || mode === 'create', [mode]);
 
+  // Update form data and mode when drawer opens or unit changes
   useEffect(() => {
-    if (unit) {
-      setFormData(unit);
-      setMode(initialMode);
-    } else {
-      setMode('create');
-      setFormData({
-        name: '',
-        abbreviation: '',
-        description: '',
-      });
+    if (isOpen) {
+      if (unit) {
+        setFormData(unit);
+        setMode(initialMode);
+      } else {
+        setMode('create');
+        setFormData({
+          name: '',
+          abbreviation: '',
+          description: '',
+        });
+      }
     }
   }, [unit, initialMode, isOpen]);
-
-  const createMutation = useMutation({
-    mutationFn: async (data: Unit) => {
-      const res = await fetch('/api/units', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
-      });
-      if (!res.ok) {
-        const error = await res.json();
-        throw new Error(error.error || 'Failed to create unit');
-      }
-      return res.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['units'] });
-      onSuccess?.();
-      onClose();
-    },
-  });
-
-  const updateMutation = useMutation({
-    mutationFn: async (data: Unit) => {
-      const res = await fetch(`/api/units/${unit?._id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
-      });
-      if (!res.ok) {
-        const error = await res.json();
-        throw new Error(error.error || 'Failed to update unit');
-      }
-      return res.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['units'] });
-      onSuccess?.();
-      setMode('view');
-    },
-  });
 
   const handleInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -100,27 +62,29 @@ const UnitDetailsDrawer = ({ unit, isOpen, onClose, mode: initialMode = 'view', 
     e.preventDefault();
     try {
       if (mode === 'create') {
-        await createMutation.mutateAsync(formData);
+        await createUnit.mutateAsync(formData);
+        onSuccess?.();
+        onClose();
       } else if (mode === 'edit') {
-        await updateMutation.mutateAsync(formData);
+        await updateUnit.mutateAsync({ id: unit?._id!, data: formData });
+        onSuccess?.();
+        setMode('view');
       }
     } catch (error) {
       console.error('Error:', error);
     }
   };
 
-  if (!isOpen) return null;
-
   return (
     <Drawer open={isOpen} onOpenChange={onClose}>
       <DrawerContent className="overflow-y-auto">
-        <DrawerHeader>
+        <DrawerHeader className=" py-4">
           <DrawerTitle>
             {mode === 'create' ? 'Add Unit' : mode === 'edit' ? 'Edit Unit' : 'Unit Details'}
           </DrawerTitle>
         </DrawerHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form onSubmit={handleSubmit} className="space-y-8 py-6">
           {/* Unit Info Section */}
           <div>
             <h3 className="text-sm font-semibold text-gray-900 mb-3">Unit Info</h3>
@@ -175,7 +139,7 @@ const UnitDetailsDrawer = ({ unit, isOpen, onClose, mode: initialMode = 'view', 
           </div>
 
           {/* Footer */}
-          <DrawerFooter>
+          <DrawerFooter className="flex justify-end gap-2 pt-6 mt-8">
             {isEditing && (
               <>
                 <button
@@ -187,10 +151,10 @@ const UnitDetailsDrawer = ({ unit, isOpen, onClose, mode: initialMode = 'view', 
                 </button>
                 <button
                   type="submit"
-                  disabled={createMutation.isPending || updateMutation.isPending}
+                  disabled={createUnit.isPending || updateUnit.isPending}
                   className="px-4 py-2 bg-[#556B2F] hover:bg-[#556B2F]/90 text-white rounded font-medium disabled:opacity-50 transition text-sm flex items-center gap-2"
                 >
-                  {createMutation.isPending || updateMutation.isPending ? (
+                  {createUnit.isPending || updateUnit.isPending ? (
                     <>
                       <Loader className="w-4 h-4 animate-spin" />
                       Saving...
@@ -205,7 +169,7 @@ const UnitDetailsDrawer = ({ unit, isOpen, onClose, mode: initialMode = 'view', 
               <button
                 type="button"
                 onClick={() => setMode('edit')}
-                className="w-full px-4 py-2 border border-gray-300 text-gray-700 rounded font-medium hover:bg-gray-50 transition text-sm"
+                className="px-4 py-2 border border-gray-300 text-gray-700 rounded font-medium hover:bg-gray-50 transition text-sm"
               >
                 Edit Unit
               </button>
@@ -217,4 +181,4 @@ const UnitDetailsDrawer = ({ unit, isOpen, onClose, mode: initialMode = 'view', 
   );
 };
 
-export default UnitDetailsDrawer;
+export default memo(UnitDetailsDrawer);

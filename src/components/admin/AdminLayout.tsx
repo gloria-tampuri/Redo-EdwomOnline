@@ -20,7 +20,7 @@ export function AdminLayout({ children }: AdminLayoutProps) {
 
         {/* Page Content */}
         <main className="flex-1 overflow-y-auto">
-          <div className="p-6">
+          <div className="p-2">
             {children}
           </div>
         </main>

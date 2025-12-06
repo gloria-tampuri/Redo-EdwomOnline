@@ -1,6 +1,7 @@
 'use client';
 
 import { SessionProvider } from 'next-auth/react';
+import { Toaster } from 'sonner';
 import { Header } from '@/components/layout/Header';
 import { QueryProvider } from '@/app/QueryProvider';
 import { usePathname } from 'next/navigation';
@@ -15,6 +16,12 @@ export function RootLayoutClient({ children }: { children: React.ReactNode }) {
   return (
     <QueryProvider>
       <SessionProvider>
+        <Toaster 
+          position="top-right" 
+          richColors 
+          closeButton
+          duration={4000}
+        />
         <div className="flex flex-col min-h-screen">
           {!hideHeader && <Header />}
           <main className="flex-1">

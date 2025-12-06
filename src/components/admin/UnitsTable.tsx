@@ -1,17 +1,15 @@
 'use client';
 
-import { useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useState, useMemo } from 'react';
 import {
   ColumnDef,
-  flexRender,
   getCoreRowModel,
   useReactTable,
   getPaginationRowModel,
   getSortedRowModel,
   SortingState,
 } from '@tanstack/react-table';
-import { Trash2, MoreVertical, Plus, Search, ChevronUp } from 'lucide-react';
+import { Trash2, MoreVertical, Plus, Search } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -22,6 +20,11 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import UnitDetailsDrawer from './UnitDetailsDrawer';
 import { Unit } from '@/types/categories-units';
+import { useUnits } from '@/hooks/useUnits';
+import NoItem from '@/components/svgs/no-item';
+import { DeleteConfirmDialog } from './DeleteConfirmDialog';
+import { DataTable } from './DataTable';
+import { TablePagination } from './TablePagination';
 
 export default function UnitsTable() {
   const [sorting, setSorting] = useState<SortingState>([]);
@@ -29,36 +32,20 @@ export default function UnitsTable() {
   const [selectedUnit, setSelectedUnit] = useState<Unit | null>(null);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [drawerMode, setDrawerMode] = useState<'create' | 'view' | 'edit'>('view');
-  const queryClient = useQueryClient();
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [unitToDelete, setUnitToDelete] = useState<Unit | null>(null);
 
-  const { data: units = [], isLoading } = useQuery<Unit[]>({
-    queryKey: ['units'],
-    queryFn: async () => {
-      const res = await fetch('/api/units');
-      if (!res.ok) throw new Error('Failed to fetch units');
-      return res.json();
-    },
-  });
+  const { units, isLoading, deleteUnit } = useUnits();
 
-  // Filter units based on search
-  const filteredUnits = units.filter(unit =>
-    unit.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    unit.abbreviation.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    unit.description?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-
-  const deleteMutation = useMutation({
-    mutationFn: async (id: string) => {
-      const res = await fetch(`/api/units/${id}`, {
-        method: 'DELETE',
-      });
-      if (!res.ok) throw new Error('Failed to delete unit');
-      return res.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['units'] });
-    },
-  });
+  // Calculate filtered units once using useMemo to avoid duplicate filtering
+  const filteredUnits = useMemo(() => {
+    if (!searchTerm) return units;
+    return units.filter(unit =>
+      unit.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      unit.abbreviation.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      unit.description?.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+  }, [units, searchTerm]);
 
   const handleCreate = () => {
     setSelectedUnit(null);
@@ -79,13 +66,8 @@ export default function UnitsTable() {
   };
 
   const handleDelete = async (id: string) => {
-    if (confirm('Are you sure you want to delete this unit?')) {
-      try {
-        await deleteMutation.mutateAsync(id);
-      } catch (error) {
-        console.error('Error:', error);
-      }
-    }
+    setUnitToDelete({ _id: id } as Unit);
+    setShowDeleteConfirm(true);
   };
 
   const columns: ColumnDef<Unit>[] = [
@@ -121,14 +103,7 @@ export default function UnitsTable() {
       header: 'Actions',
       cell: ({ row }) => (
         <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => handleView(row.original)}
-            className="text-xs"
-          >
-            View
-          </Button>
+    
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button className="p-1 hover:bg-gray-100 rounded transition">
@@ -136,15 +111,19 @@ export default function UnitsTable() {
               </button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
+               <DropdownMenuItem             onClick={() => handleView(row.original)}
+>
+                View
+              </DropdownMenuItem>
               <DropdownMenuItem onClick={() => handleEdit(row.original)}>
                 Edit
               </DropdownMenuItem>
               <DropdownMenuItem
                 onClick={() => handleDelete(row.original._id!)}
-                disabled={deleteMutation.isPending}
+                disabled={deleteUnit.isPending}
                 className="text-red-600"
               >
-                {deleteMutation.isPending ? 'Deleting...' : 'Delete'}
+                {deleteUnit.isPending ? 'Deleting...' : 'Delete'}
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
@@ -193,127 +172,10 @@ export default function UnitsTable() {
       </div>
 
       {/* Table */}
-      <div className="border border-gray-200 rounded-lg overflow-hidden">
-        <table className="w-full">
-          <thead className="bg-gray-50 border-b border-gray-200">
-            {table.getHeaderGroups().map((headerGroup) => (
-              <tr key={headerGroup.id}>
-                {headerGroup.headers.map((header) => (
-                  <th
-                    key={header.id}
-                    className="px-6 py-3 text-left text-sm font-semibold text-gray-900"
-                  >
-                    {header.isPlaceholder
-                      ? null
-                      : flexRender(header.column.columnDef.header, header.getContext())}
-                  </th>
-                ))}
-              </tr>
-            ))}
-          </thead>
-          <tbody>
-            {isLoading ? (
-              <tr>
-                <td colSpan={columns.length} className="px-6 py-8 text-center text-gray-500">
-                  Loading units...
-                </td>
-              </tr>
-            ) : table.getRowModel().rows.length === 0 ? (
-              <tr>
-                <td colSpan={columns.length} className="px-6 py-16 text-center">
-                  <div className="flex flex-col items-center justify-center gap-2">
-                    <svg className="w-12 h-12 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
-                    </svg>
-                    <p className="text-gray-500 text-sm font-medium">No units added</p>
-                  </div>
-                </td>
-              </tr>
-            ) : (
-              table.getRowModel().rows.map((row) => (
-                <tr key={row.id} className="border-b border-gray-200 hover:bg-gray-50 transition">
-                  {row.getVisibleCells().map((cell) => (
-                    <td key={cell.id} className="px-6 py-4 text-sm text-gray-600">
-                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                    </td>
-                  ))}
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      </div>
+      <DataTable table={table} columns={columns} isLoading={isLoading} emptyMessage="units" />
 
       {/* Pagination */}
-      {table.getRowModel().rows.length > 0 && (
-        <div className="flex items-center justify-between pt-6 border-t border-gray-200">
-          <p className="text-xs text-gray-600">
-            Showing {table.getState().pagination.pageIndex * table.getState().pagination.pageSize + 1} to{' '}
-            {Math.min(
-              (table.getState().pagination.pageIndex + 1) * table.getState().pagination.pageSize,
-              filteredUnits.length
-            )} of {filteredUnits.length} units
-          </p>
-          
-          {/* Pagination Controls */}
-          <div className="flex items-center gap-1">
-            {/* Previous Button */}
-            <button
-              onClick={() => table.previousPage()}
-              disabled={!table.getCanPreviousPage()}
-              className="p-2 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed rounded transition"
-            >
-              <ChevronUp className="w-4 h-4 text-gray-600 rotate-180" />
-            </button>
-
-            {/* Page Numbers with Smart Ellipsis */}
-            {Array.from({ length: table.getPageCount() }).map((_, i) => {
-              const pageIndex = table.getState().pagination.pageIndex;
-              const pageCount = table.getPageCount();
-              
-              const isVisible = 
-                i === 0 ||
-                i === pageCount - 1 ||
-                (i >= pageIndex - 1 && i <= pageIndex + 1);
-
-              if (!isVisible && i !== 1 && i !== pageCount - 2) {
-                return null;
-              }
-
-              if ((i === 1 && pageIndex > 2) || (i === pageCount - 2 && pageIndex < pageCount - 3)) {
-                return (
-                  <span key={`ellipsis-${i}`} className="px-1 text-gray-400">
-                    ...
-                  </span>
-                );
-              }
-
-              return (
-                <button
-                  key={i}
-                  onClick={() => table.setPageIndex(i)}
-                  className={`px-2 py-1 text-xs font-medium rounded transition ${
-                    pageIndex === i
-                      ? 'bg-gray-900 text-white'
-                      : 'text-gray-700 hover:bg-gray-100'
-                  }`}
-                >
-                  {i + 1}
-                </button>
-              );
-            })}
-
-            {/* Next Button */}
-            <button
-              onClick={() => table.nextPage()}
-              disabled={!table.getCanNextPage()}
-              className="p-2 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed rounded transition"
-            >
-              <ChevronUp className="w-4 h-4 text-gray-600" />
-            </button>
-          </div>
-        </div>
-      )}
+      <TablePagination table={table} totalItems={filteredUnits.length} />
 
       {/* Drawer */}
       <UnitDetailsDrawer
@@ -322,6 +184,22 @@ export default function UnitsTable() {
         onClose={() => setIsDrawerOpen(false)}
         mode={drawerMode}
         onSuccess={() => setIsDrawerOpen(false)}
+      />
+
+      {/* Delete Confirmation Dialog */}
+      <DeleteConfirmDialog
+        open={showDeleteConfirm}
+        onOpenChange={setShowDeleteConfirm}
+        title="Delete Unit"
+        itemName={unitToDelete?.name}
+        onConfirm={() => {
+          if (unitToDelete) {
+            deleteUnit.mutate(unitToDelete._id!);
+            setShowDeleteConfirm(false);
+            setUnitToDelete(null);
+          }
+        }}
+        isLoading={deleteUnit.isPending}
       />
     </div>
   );

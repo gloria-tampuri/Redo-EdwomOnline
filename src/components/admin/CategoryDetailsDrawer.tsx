@@ -1,10 +1,9 @@
 'use client';
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { Upload, Trash2, Loader } from 'lucide-react';
-import Cropper from 'react-easy-crop';
+import { Loader } from 'lucide-react';
 import { Input } from '@/components/ui/input';
+import ImageUploadSection from './ImageUploadSection';
 import {
   Drawer,
   DrawerContent,
@@ -12,23 +11,8 @@ import {
   DrawerFooter,
   DrawerTitle,
 } from '@/components/ui/drawer';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogFooter,
-  DialogTitle,
-} from '@/components/ui/dialog';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import { uploadToCloudinary } from '@/utils/cloudinary';
-import { getCroppedImage } from '@/utils/cropImage';
 import { Category } from '@/types/categories-units';
+import { useCategories } from '@/hooks/useCategories';
 
 type DrawerMode = 'create' | 'view' | 'edit';
 
@@ -54,124 +38,43 @@ const CategoryDetailsDrawer = ({ category, isOpen, onClose, mode: initialMode = 
   );
   const [imagePreview, setImagePreview] = useState<string>(category?.image || '');
   const [isUploadingImage, setIsUploadingImage] = useState(false);
-  const [rawImageSrc, setRawImageSrc] = useState<string>('');
-  const [showCropper, setShowCropper] = useState(false);
-  const [crop, setCrop] = useState({ x: 0, y: 0 });
-  const [zoom, setZoom] = useState(1);
-  const [croppedAreaPixels, setCroppedAreaPixels] = useState(null);
-  const queryClient = useQueryClient();
+
+  const { createCategory, updateCategory } = useCategories();
 
   // Memoize computed values (must be before useEffect)
   const isReadOnly = useMemo(() => mode === 'view', [mode]);
   const isEditing = useMemo(() => mode === 'edit' || mode === 'create', [mode]);
 
   useEffect(() => {
-    if (category) {
-      setFormData(category);
-      setImagePreview(category.image || '');
-      setMode(initialMode);
-    } else {
-      setMode('create');
-      setFormData({
-        name: '',
-        description: '',
-        icon: '',
-        color: '#556B2F',
-        image: '',
-        status: 'active',
-      });
-      setImagePreview('');
+    if (isOpen) {
+      if (category) {
+        setFormData(category);
+        setImagePreview(category.image || '');
+        setMode(initialMode);
+      } else {
+        setMode('create');
+        setFormData({
+          name: '',
+          description: '',
+          icon: '',
+          color: '#556B2F',
+          image: '',
+          status: 'active',
+        });
+        setImagePreview('');
+      }
     }
   }, [category, initialMode, isOpen]);
 
-  const handleImageUpload = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = () => {
-        setRawImageSrc(reader.result as string);
-        setShowCropper(true);
-        setCrop({ x: 0, y: 0 });
-        setZoom(1);
-      };
-      reader.readAsDataURL(file);
-    }
+  const handleImageUpload = useCallback((imageUrl: string) => {
+    setImagePreview(imageUrl);
+    setFormData(prev => ({ ...prev, image: imageUrl }));
   }, []);
 
-  const handleCropComplete = useCallback((_croppedArea: unknown, croppedAreaPixels: any) => {
-    setCroppedAreaPixels(croppedAreaPixels);
-  }, []);
-
-  const handleConfirmCrop = useCallback(async () => {
-    if (!rawImageSrc || !croppedAreaPixels) return;
-
-    try {
-      setIsUploadingImage(true);
-      const croppedFile = await getCroppedImage(rawImageSrc, croppedAreaPixels, 'category-image.jpg');
-      const cloudinaryUrl = await uploadToCloudinary(croppedFile);
-      setFormData(prev => ({ ...prev, image: cloudinaryUrl }));
-      setImagePreview(cloudinaryUrl);
-      setShowCropper(false);
-      setRawImageSrc('');
-    } catch (error) {
-      console.error('Error cropping and uploading image:', error);
-      alert('Failed to crop and upload image. Please try again.');
-    } finally {
-      setIsUploadingImage(false);
-    }
-  }, [rawImageSrc, croppedAreaPixels]);
-
-  const handleCancelCrop = useCallback(() => {
-    setShowCropper(false);
-    setRawImageSrc('');
-    setCrop({ x: 0, y: 0 });
-    setZoom(1);
-  }, []);
-
-  const handleRemoveImage = useCallback(() => {
-    setFormData(prev => ({ ...prev, image: '' }));
+  const handleImageRemove = useCallback(() => {
     setImagePreview('');
+    setFormData(prev => ({ ...prev, image: '' }));
   }, []);
-
-  const createMutation = useMutation({
-    mutationFn: async (data: Category) => {
-      const res = await fetch('/api/categories', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
-      });
-      if (!res.ok) {
-        const error = await res.json();
-        throw new Error(error.error || 'Failed to create category');
-      }
-      return res.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['categories'] });
-      onSuccess?.();
-      onClose();
-    },
-  });
-
-  const updateMutation = useMutation({
-    mutationFn: async (data: Category) => {
-      const res = await fetch(`/api/categories/${category?._id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
-      });
-      if (!res.ok) {
-        const error = await res.json();
-        throw new Error(error.error || 'Failed to update category');
-      }
-      return res.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['categories'] });
-      onSuccess?.();
-      setMode('view');
-    },
-  });
 
   const handleInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -184,91 +87,31 @@ const CategoryDetailsDrawer = ({ category, isOpen, onClose, mode: initialMode = 
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (mode === 'create') {
-      await createMutation.mutateAsync(formData);
-    } else if (mode === 'edit') {
-      await updateMutation.mutateAsync(formData);
+    try {
+      if (mode === 'create') {
+        await createCategory.mutateAsync(formData);
+        onSuccess?.();
+        onClose();
+      } else if (mode === 'edit') {
+        await updateCategory.mutateAsync({ id: category?._id!, data: formData });
+        onSuccess?.();
+        setMode('view');
+      }
+    } catch (error) {
+      console.error('Error:', error);
     }
   };
-
-
-  if (!isOpen) return null;
-
-  // Render cropper modal
-  if (showCropper) {
-    return (
-      <Dialog open={showCropper} onOpenChange={setShowCropper}>
-        <DialogContent className="max-w-lg">
-          <DialogHeader>
-            <DialogTitle>Crop Image</DialogTitle>
-          </DialogHeader>
-          <div className="relative w-full h-96 bg-gray-100">
-            <Cropper
-              image={rawImageSrc}
-              crop={crop}
-              zoom={zoom}
-              aspect={1}
-              cropShape="round"
-              showGrid={false}
-              onCropChange={setCrop}
-              onCropComplete={handleCropComplete}
-              onZoomChange={setZoom}
-            />
-          </div>
-          <div className="space-y-3">
-            <div>
-              <label className="text-sm text-gray-600 block mb-2">Zoom</label>
-              <input
-                type="range"
-                value={zoom}
-                min={1}
-                max={3}
-                step={0.1}
-                onChange={(e) => setZoom(parseFloat(e.target.value))}
-                className="w-full"
-              />
-            </div>
-            <DialogFooter>
-              <button
-                type="button"
-                onClick={handleCancelCrop}
-                disabled={isUploadingImage}
-                className="px-3 py-2 border border-gray-300 text-gray-700 rounded font-medium hover:bg-gray-50 disabled:opacity-50 text-sm"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={handleConfirmCrop}
-                disabled={isUploadingImage}
-                className="px-3 py-2 bg-[#556B2F] hover:bg-[#556B2F]/90 text-white rounded font-medium disabled:opacity-50 flex items-center gap-2 text-sm"
-              >
-                {isUploadingImage ? (
-                  <>
-                    <Loader className="w-4 h-4 animate-spin" />
-                    Uploading...
-                  </>
-                ) : (
-                  'Confirm & Upload'
-                )}
-              </button>
-            </DialogFooter>
-          </div>
-        </DialogContent>
-      </Dialog>
-    );
-  }
 
   return (
     <Drawer open={isOpen} onOpenChange={onClose}>
       <DrawerContent className="overflow-y-auto">
-        <DrawerHeader>
+        <DrawerHeader className=" py-4">
           <DrawerTitle>
             {mode === 'create' ? 'Add Category' : mode === 'edit' ? 'Edit Category' : 'Category Details'}
           </DrawerTitle>
         </DrawerHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form onSubmit={handleSubmit} className="space-y-8 py-6">
           {/* Product Info Section */}
           <div>
             <h3 className="text-sm font-semibold text-gray-900 mb-3">Product Info</h3>
@@ -335,80 +178,45 @@ const CategoryDetailsDrawer = ({ category, isOpen, onClose, mode: initialMode = 
 
           {/* Media Section */}
           <div>
-            <h3 className="text-sm font-semibold text-gray-900 mb-3">Media</h3>
-            <div>
-              <label className="text-sm text-gray-600 block mb-2">Upload Category Cover</label>
-              {isEditing ? (
-                <div>
-                  {imagePreview ? (
-                    <div className="relative mb-3">
-                      <img
-                        src={imagePreview}
-                        alt="Category preview"
-                        className="w-full h-32 rounded-lg object-cover bg-gray-100"
-                      />
-                      <button
-                        type="button"
-                        onClick={handleRemoveImage}
-                        disabled={isUploadingImage}
-                        className="absolute top-1 right-1 bg-red-500 text-white p-1 rounded-lg hover:bg-red-600 disabled:opacity-50"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
-                  ) : (
-                    <label className={`border-2 border-dashed ${isUploadingImage ? 'border-gray-200 bg-gray-50' : 'border-gray-300 hover:border-gray-400'} rounded-lg p-6 text-center cursor-pointer transition`}>
-                      {isUploadingImage ? (
-                        <div className="flex flex-col items-center justify-center gap-2">
-                          <Loader className="w-8 h-8 text-gray-400 animate-spin" />
-                          <p className="text-sm text-gray-600">Uploading...</p>
-                        </div>
-                      ) : (
-                        <>
-                          <Upload className="w-8 h-8 text-gray-400 mx-auto mb-2" />
-                          <p className="text-sm text-gray-600">Drag or click to upload</p>
-                          <p className="text-xs text-gray-500 mt-1">JPG, PNG (.5MB max)</p>
-                        </>
-                      )}
-                      <input
-                        type="file"
-                        accept="image/jpeg,image/png,image/jpg"
-                        onChange={handleImageUpload}
-                        disabled={isUploadingImage}
-                        className="hidden"
-                      />
-                    </label>
-                  )}
-                </div>
-              ) : (
-                imagePreview ? (
-                  <img
-                    src={imagePreview}
-                    alt="Category"
-                    className="w-full h-32 rounded-lg object-cover bg-gray-100"
-                  />
-                ) : (
-                  <div className="w-full h-32 rounded-lg bg-gray-100 flex items-center justify-center">
-                    <p className="text-gray-500 text-sm">No image</p>
-                  </div>
-                )
-              )}
-            </div>
+            <h3 className="text-sm font-semibold text-gray-900 mb-3">Upload Category Cover</h3>
+            <ImageUploadSection
+              title="Category Cover"
+              imagePreview={imagePreview}
+              isEditing={isEditing}
+              isUploading={isUploadingImage}
+              onImageUpload={handleImageUpload}
+              onImageRemove={handleImageRemove}
+            />
           </div>
 
           {/* Category Status Section */}
           <div>
-            <h3 className="text-sm font-semibold text-gray-900 mb-3">Category Status</h3>
+            <h3 className="text-sm font-semibold text-gray-900 mb-3 ">Category Status</h3>
             {isEditing ? (
-              <Select value={formData.status || 'active'} onValueChange={(value) => handleSelectChange('status', value)}>
-                <SelectTrigger className="bg-white">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="active">Active</SelectItem>
-                  <SelectItem value="inactive">Inactive</SelectItem>
-                </SelectContent>
-              </Select>
+              <div className="flex items-center gap-6">
+                <label className="flex items-center gap-3 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="status"
+                    value="active"
+                    checked={formData.status === 'active'}
+                    onChange={(e) => handleSelectChange('status', e.target.value)}
+                    className="w-4 h-4 cursor-pointer accent-[#556B2F]"
+                  />
+                  <span className="text-sm text-gray-700">Publish</span>
+                </label>
+                <label className="flex items-center gap-3 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="status"
+                    value="inactive"
+                    checked={formData.status === 'inactive'}
+                    onChange={(e) => handleSelectChange('status', e.target.value)}
+                    className="w-4 h-4 cursor-pointer accent-[#556B2F]"
+                  />
+                  <span className="text-sm text-gray-700">Save as draft</span>
+                </label>
+              </div>
             ) : (
               <div className="flex items-center gap-2">
                 <span
@@ -418,14 +226,14 @@ const CategoryDetailsDrawer = ({ category, isOpen, onClose, mode: initialMode = 
                       : 'bg-gray-100 text-gray-800'
                   }`}
                 >
-                  {formData.status === 'active' ? 'Active' : 'Inactive'}
+                  {formData.status === 'active' ? 'Publish' : 'Save as draft'}
                 </span>
               </div>
             )}
           </div>
 
           {/* Footer */}
-          <DrawerFooter>
+          <DrawerFooter className="flex justify-end gap-2 pt-6 mt-8">
             {isEditing && (
               <>
                 <button
@@ -437,10 +245,10 @@ const CategoryDetailsDrawer = ({ category, isOpen, onClose, mode: initialMode = 
                 </button>
                 <button
                   type="submit"
-                  disabled={createMutation.isPending || updateMutation.isPending}
+                  disabled={createCategory.isPending || updateCategory.isPending}
                   className="px-4 py-2 bg-[#556B2F] hover:bg-[#556B2F]/90 text-white rounded font-medium disabled:opacity-50 transition text-sm flex items-center gap-2"
                 >
-                  {createMutation.isPending || updateMutation.isPending ? (
+                  {createCategory.isPending || updateCategory.isPending ? (
                     <>
                       <Loader className="w-4 h-4 animate-spin" />
                       Saving...
@@ -455,7 +263,7 @@ const CategoryDetailsDrawer = ({ category, isOpen, onClose, mode: initialMode = 
               <button
                 type="button"
                 onClick={() => setMode('edit')}
-                className="w-full px-4 py-2 border border-gray-300 text-gray-700 rounded font-medium hover:bg-gray-50 transition text-sm"
+                className="px-4 py-2 border border-gray-300 text-gray-700 rounded font-medium hover:bg-gray-50 transition text-sm"
               >
                 Edit Category
               </button>

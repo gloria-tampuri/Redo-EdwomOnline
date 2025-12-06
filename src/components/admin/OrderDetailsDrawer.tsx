@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { Plus, Trash2, Search, Loader } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -20,6 +20,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Order, OrderItem, InventoryItem } from '@/types/order';
+import { useOrders } from '@/hooks/useOrders';
 
 type DrawerMode = 'create' | 'view' | 'edit';
 
@@ -48,7 +49,8 @@ const OrderDetailsDrawer = ({ order, isOpen, onClose, mode: initialMode = 'view'
     deliveryFee: 0,
     tax: 0,
   });
-  const queryClient = useQueryClient();
+  
+  const { createOrder, updateOrder } = useOrders();
 
   // Fetch available items from inventory
   const { data: availableItems = [] } = useQuery<InventoryItem[]>({
@@ -77,63 +79,28 @@ const OrderDetailsDrawer = ({ order, isOpen, onClose, mode: initialMode = 'view'
   };
 
   useEffect(() => {
-    if (order) {
-      setFormData(order);
-      setMode(initialMode);
-    } else {
-      setMode('create');
-      setFormData({
-        orderId: generateOrderId(),
-        customer: { name: '', phone: '', email: '', address: '' },
-        items: [],
-        totalAmount: 0,
-        deliveryLocation: '',
-        status: 'Pending',
-        orderDate: new Date().toISOString().split('T')[0],
-        paymentStatus: 'Unpaid',
-        discount: 0,
-        deliveryFee: 0,
-        tax: 0,
-      });
+    if (isOpen) {
+      if (order) {
+        setFormData(order);
+        setMode(initialMode);
+      } else {
+        setMode('create');
+        setFormData({
+          orderId: generateOrderId(),
+          customer: { name: '', phone: '', email: '', address: '' },
+          items: [],
+          totalAmount: 0,
+          deliveryLocation: '',
+          status: 'Pending',
+          orderDate: new Date().toISOString().split('T')[0],
+          paymentStatus: 'Unpaid',
+          discount: 0,
+          deliveryFee: 0,
+          tax: 0,
+        });
+      }
     }
   }, [order, initialMode, isOpen]);
-
-  // Mutations
-  const createOrderMutation = useMutation({
-    mutationFn: async (data: Order) => {
-      const res = await fetch('/api/orders', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
-      });
-      if (!res.ok) throw new Error('Failed to create order');
-      return res.json();
-    },
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ['orders'] });
-      await queryClient.refetchQueries({ queryKey: ['orders'] });
-      onSuccess?.();
-      onClose();
-    },
-  });
-
-  const updateOrderMutation = useMutation({
-    mutationFn: async (data: Order) => {
-      const res = await fetch(`/api/orders/${order?._id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
-      });
-      if (!res.ok) throw new Error('Failed to update order');
-      return res.json();
-    },
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ['orders'] });
-      await queryClient.refetchQueries({ queryKey: ['orders'] });
-      onSuccess?.();
-      setMode('view');
-    },
-  });
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -177,20 +144,26 @@ const OrderDetailsDrawer = ({ order, isOpen, onClose, mode: initialMode = 'view'
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Calculate total amount
-    const itemsTotal = formData.items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-    const total = itemsTotal - (formData.discount || 0) + (formData.deliveryFee || 0) + (formData.tax || 0);
-    
-    const submitData = { ...formData, totalAmount: total };
+    try {
+      // Calculate total amount
+      const itemsTotal = formData.items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+      const total = itemsTotal - (formData.discount || 0) + (formData.deliveryFee || 0) + (formData.tax || 0);
+      
+      const submitData = { ...formData, totalAmount: total };
 
-    if (mode === 'create') {
-      await createOrderMutation.mutateAsync(submitData);
-    } else if (mode === 'edit') {
-      await updateOrderMutation.mutateAsync(submitData);
+      if (mode === 'create') {
+        await createOrder.mutateAsync(submitData);
+        onSuccess?.();
+        onClose();
+      } else if (mode === 'edit') {
+        await updateOrder.mutateAsync({ id: order?._id!, data: submitData });
+        onSuccess?.();
+        setMode('view');
+      }
+    } catch (error) {
+      console.error('Error submitting order:', error);
     }
   };
-
-  if (!isOpen) return null;
 
   const isReadOnly = mode === 'view';
   const isEditing = mode === 'edit' || mode === 'create';
@@ -204,7 +177,7 @@ const OrderDetailsDrawer = ({ order, isOpen, onClose, mode: initialMode = 'view'
   return (
     <Drawer open={isOpen} onOpenChange={onClose}>
       <DrawerContent className="overflow-y-auto">
-        <DrawerHeader>
+        <DrawerHeader className=' py-4 font-semibold text-[#1A1015E5] text-[24px] line-height[32px]'>
           <DrawerTitle>
             {mode === 'create' ? 'Add Order' : mode === 'edit' ? 'Edit Order' : 'Order Details'}
           </DrawerTitle>
@@ -213,26 +186,28 @@ const OrderDetailsDrawer = ({ order, isOpen, onClose, mode: initialMode = 'view'
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Order Summary / Details */}
             <div>
-              <h3 className="text-sm font-semibold text-gray-900 mb-3">
-                {isEditing ? 'Order Details' : 'Order Summary'}
-              </h3>
-              <div className="grid grid-cols-2 gap-4 text-sm">
+                <h3 className="mb-3 font-semibold text-[#170A11B2] text-[18px]">Order Summary</h3>
+              <div className={isEditing ? "space-y-3" : "grid grid-cols-2 gap-4 text-sm"}>
                 <div>
-                  <label className="text-gray-600 block mb-1">Order ID</label>
-                  <Input
-                    type="text"
-                    name="orderId"
-                    value={formData.orderId}
-                    onChange={handleInputChange}
-                    disabled={isReadOnly || mode === 'create'}
-                    placeholder="Enter order ID"
-                  />
+                  <label className="text-sm text-[#170A11B2] block mb-2">Order ID</label>
+                  {isEditing ? (
+                    <Input
+                      type="text"
+                      name="orderId"
+                      value={formData.orderId}
+                      onChange={handleInputChange}
+                      disabled={isReadOnly || mode === 'create'}
+                      placeholder="Enter order ID"
+                    />
+                  ) : (
+                    <p className="text-xs font-medium text-gray-900">{formData.orderId}</p>
+                  )}
                 </div>
                 <div>
-                  <label className="text-gray-600 block mb-1">Status</label>
+                  <label className="text-sm text-[#170A11B2] block mb-2">Status</label>
                   {isEditing ? (
                     <Select value={formData.status} onValueChange={(value) => handleSelectChange('status', value)}>
-                      <SelectTrigger className="bg-white">
+                      <SelectTrigger className="bg-white w-full">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -243,14 +218,14 @@ const OrderDetailsDrawer = ({ order, isOpen, onClose, mode: initialMode = 'view'
                       </SelectContent>
                     </Select>
                   ) : (
-                    <p className="font-medium text-gray-900">{formData.status}</p>
+                    <p className="text-xs font-medium text-gray-900">{formData.status}</p>
                   )}
                 </div>
                 <div>
-                  <label className="text-gray-600 block mb-1">Payment Status</label>
+                  <label className="text-sm text-[#170A11B2] block mb-2">Payment Status</label>
                   {isEditing ? (
                     <Select value={formData.paymentStatus} onValueChange={(value) => handleSelectChange('paymentStatus', value)}>
-                      <SelectTrigger className="bg-white">
+                      <SelectTrigger className="bg-white w-full">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -260,11 +235,11 @@ const OrderDetailsDrawer = ({ order, isOpen, onClose, mode: initialMode = 'view'
                       </SelectContent>
                     </Select>
                   ) : (
-                    <p className="font-medium text-gray-900">{formData.paymentStatus}</p>
+                    <p className="text-xs font-medium text-gray-900">{formData.paymentStatus}</p>
                   )}
                 </div>
                 <div>
-                  <label className="text-gray-600 block mb-1">Order Date</label>
+                  <label className="text-sm text-[#170A11B2] block mb-2">Order Date</label>
                   {isEditing ? (
                     <Input
                       type="date"
@@ -273,7 +248,7 @@ const OrderDetailsDrawer = ({ order, isOpen, onClose, mode: initialMode = 'view'
                       onChange={(e) => setFormData({ ...formData, orderDate: e.target.value })}
                     />
                   ) : (
-                    <p className="font-medium text-gray-900">
+                    <p className="text-xs font-medium text-gray-900">
                       {new Date(formData.orderDate).toLocaleDateString()}
                     </p>
                   )}
@@ -283,12 +258,12 @@ const OrderDetailsDrawer = ({ order, isOpen, onClose, mode: initialMode = 'view'
 
             {/* Customer Info */}
             <div>
-              <h3 className="text-sm font-semibold text-gray-900 mb-3">Customer Info</h3>
-              <div className="grid grid-cols-2 gap-4">
+              <h3 className="text-sm font-semibold mb-3 text-[#170A11B2] text-[18px]">Customer Info</h3>
+              <div className={isEditing ? "space-y-3" : "grid grid-cols-2 gap-4"}>
                 {isEditing ? (
                   <>
-                    <div className="col-span-2">
-                      <label className="text-sm text-gray-600 block mb-1">Name</label>
+                    <div>
+                      <label className="text-sm text-[#170A11B2] block mb-2">Name</label>
                       <Input
                         type="text"
                         name="customer.name"
@@ -298,7 +273,7 @@ const OrderDetailsDrawer = ({ order, isOpen, onClose, mode: initialMode = 'view'
                       />
                     </div>
                     <div>
-                      <label className="text-sm text-gray-600 block mb-1">Phone</label>
+                      <label className="text-sm text-[#170A11B2] block mb-2">Phone</label>
                       <Input
                         type="tel"
                         name="customer.phone"
@@ -308,7 +283,7 @@ const OrderDetailsDrawer = ({ order, isOpen, onClose, mode: initialMode = 'view'
                       />
                     </div>
                     <div>
-                      <label className="text-sm text-gray-600 block mb-1">Email</label>
+                      <label className="text-sm text-[#170A11B2] block mb-2">Email</label>
                       <Input
                         type="email"
                         name="customer.email"
@@ -317,8 +292,8 @@ const OrderDetailsDrawer = ({ order, isOpen, onClose, mode: initialMode = 'view'
                         placeholder="Email"
                       />
                     </div>
-                    <div className="col-span-2">
-                      <label className="text-sm text-gray-600 block mb-1">Address</label>
+                    <div>
+                      <label className="text-sm text-[#170A11B2] block mb-2">Address</label>
                       <Input
                         type="text"
                         name="customer.address"
@@ -331,20 +306,20 @@ const OrderDetailsDrawer = ({ order, isOpen, onClose, mode: initialMode = 'view'
                 ) : (
                   <>
                     <div>
-                      <p className="text-gray-600 text-xs">Name</p>
-                      <p className="font-medium text-gray-900">{formData.customer.name}</p>
+                      <p className="text-sm text-[#170A11B2]">Name</p>
+                      <p className="text-xs font-medium text-gray-900">{formData.customer.name}</p>
                     </div>
                     <div>
-                      <p className="text-gray-600 text-xs">Phone</p>
-                      <p className="font-medium text-gray-900">{formData.customer.phone || '-'}</p>
+                      <p className="text-sm text-[#170A11B2]">Phone</p>
+                      <p className="text-xs font-medium text-gray-900">{formData.customer.phone || '-'}</p>
                     </div>
                     <div>
-                      <p className="text-gray-600 text-xs">Email</p>
-                      <p className="font-medium text-gray-900">{formData.customer.email || '-'}</p>
+                      <p className="text-sm text-[#170A11B2]">Email</p>
+                      <p className="text-xs font-medium text-gray-900">{formData.customer.email || '-'}</p>
                     </div>
-                    <div className="col-span-2">
-                      <p className="text-gray-600 text-xs">Address</p>
-                      <p className="font-medium text-gray-900">{formData.customer.address || '-'}</p>
+                    <div>
+                      <p className="text-sm text-[#170A11B2]">Address</p>
+                      <p className="text-xs font-medium text-gray-900">{formData.customer.address || '-'}</p>
                     </div>
                   </>
                 )}
@@ -353,7 +328,7 @@ const OrderDetailsDrawer = ({ order, isOpen, onClose, mode: initialMode = 'view'
 
             {/* Delivery Location */}
             <div>
-              <label className="text-sm font-semibold text-gray-900 block mb-2">Delivery Location</label>
+              <label className="text-sm text-[#170A11B2] ">Delivery Location</label>
               {isEditing ? (
                 <Input
                   type="text"
@@ -363,19 +338,19 @@ const OrderDetailsDrawer = ({ order, isOpen, onClose, mode: initialMode = 'view'
                   placeholder="Delivery location"
                 />
               ) : (
-                <p className="text-gray-900">{formData.deliveryLocation || '-'}</p>
+                <p className="text-xs text-gray-900">{formData.deliveryLocation || '-'}</p>
               )}
             </div>
 
             {/* Items List */}
             <div>
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-sm font-semibold text-gray-900">Items List</h3>
+                <h3 className="text-sm font-semibold text-[#170A11B2] text-[18px]">Items List</h3>
               </div>
 
               {isEditing && (
-                <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                  <label className="text-xs font-semibold text-gray-700 block mb-2">Search & Add Items</label>
+                <div className="mb-4">
+                  {/* <label className="text-xs font-semibold text-gray-700 block mb-2">Search & Add Items</label> */}
                   <div className="relative">
                     <Search className="absolute left-2.5 top-2.5 w-4 h-4 text-gray-400" />
                     <Input
@@ -450,22 +425,23 @@ const OrderDetailsDrawer = ({ order, isOpen, onClose, mode: initialMode = 'view'
                   </p>
                 ) : (
                   formData.items.map((item, idx) => (
-                    <div key={idx} className="border border-gray-200 rounded-lg p-3 bg-white hover:bg-gray-50 transition">
-                      <div className="flex gap-3">
+                    <div key={idx} className="rounded-lg py-4 pb-0.5 bg-white hover:shadow-md transition">
+                      <div className="flex gap-3 items-start">
                         {/* Item Image */}
                         {item.image && (
-                          <div className="w-12 h-12 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0">
+                          <div className="w-14 h-14 rounded-md overflow-hidden bg-gray-100 flex-shrink-0">
                             <img src={item.image} alt={item.name} className="w-full h-full object-cover" />
                           </div>
                         )}
                         
                         {/* Item Details */}
                         <div className="flex-1 min-w-0">
-                          <p className="font-medium text-gray-900 text-sm truncate">{item.name}</p>
-                          <p className="text-xs text-gray-600">₵{item.price.toLocaleString()} per {item.unit}</p>
-                          
+                          <div className="flex justify-between items-start gap-2">
+                            <p className="font-semibold text-[#12170AB2] text-sm">{item.name}</p>
+                            <p className="text-xstext-gray-900 flex-shrink-0">₵{((item.price || 0) * (item.quantity || 0)).toLocaleString()}</p>
+                          </div>
                           {isEditing ? (
-                            <div className="mt-2 flex items-center gap-2">
+                            <div className="mt-1 flex items-center gap-1">
                               <Input
                                 type="number"
                                 value={item.quantity}
@@ -473,15 +449,17 @@ const OrderDetailsDrawer = ({ order, isOpen, onClose, mode: initialMode = 'view'
                                   handleItemChange(idx, 'quantity', Math.max(1, parseInt(e.target.value) || 1))
                                 }
                                 min="1"
-                                className="w-16"
+                                className="w-12 h-6"
                               />
-                              <span className="text-xs text-gray-600">
-                                Qty: {item.quantity} • Subtotal: <span className="font-medium">₵{((item.price || 0) * (item.quantity || 0)).toLocaleString()}</span>
+                              <span className="text-xs text-gray-700">
+                                Qty: {item.quantity}
                               </span>
+                              <span className="text-xs text-gray-600">•</span>
+                              <p className="text-xs text-gray-600">₵{item.price.toLocaleString()} per {item.unit}</p>
                             </div>
                           ) : (
-                            <p className="text-xs text-gray-600 mt-1">
-                              Qty: {item.quantity} • Subtotal: <span className="font-medium">₵{((item.price || 0) * (item.quantity || 0)).toLocaleString()}</span>
+                            <p className="text-xs text-gray-700 mt-1">
+                              Qty: {item.quantity} • ₵{item.price.toLocaleString()} per {item.unit}
                             </p>
                           )}
                         </div>
@@ -491,7 +469,7 @@ const OrderDetailsDrawer = ({ order, isOpen, onClose, mode: initialMode = 'view'
                           <button
                             type="button"
                             onClick={() => handleRemoveItem(idx)}
-                            className="flex-shrink-0 p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-md transition"
+                            className="flex-shrink-0 p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-md transition"
                           >
                             <Trash2 className="w-4 h-4" />
                           </button>
@@ -504,77 +482,78 @@ const OrderDetailsDrawer = ({ order, isOpen, onClose, mode: initialMode = 'view'
             </div>
 
             {/* Cost Breakdown */}
-            <div className="space-y-2 text-sm border-t border-gray-200 pt-4">
-              <div className="flex justify-between">
-                <span className="text-gray-600">Subtotal</span>
-                {isEditing ? (
-                  <span className="font-medium text-gray-900">₵{subtotal.toLocaleString()}</span>
-                ) : (
-                  <span className="font-medium text-gray-900">₵{subtotal.toLocaleString()}</span>
-                )}
+            <div>
+              <h3 className="text-sm font-semibold mb-3 text-[#170A11B2] text-[18px]">Subtotal</h3>
+              <div className={isEditing ? "space-y-3" : "grid grid-cols-2 gap-4"}>
+                <div>
+                  <label className="text-sm text-[#170A11B2] block mb-2">Subtotal</label>
+                  <p className="text-xs font-medium text-gray-900">₵{subtotal.toLocaleString()}</p>
+                </div>
+                <div>
+                  <label className="text-sm text-[#170A11B2] block mb-2">Discount</label>
+                  {isEditing ? (
+                    <Input
+                      type="number"
+                      value={discount}
+                      onChange={(e) => {
+                        const newDiscount = parseFloat(e.target.value) || 0;
+                        const itemsTotal = formData.items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+                        const total = itemsTotal - newDiscount + (formData.deliveryFee || 0) + (formData.tax || 0);
+                        setFormData({ ...formData, discount: newDiscount, totalAmount: total });
+                      }}
+                      className="w-full"
+                    />
+                  ) : (
+                    <p className="text-xs font-medium text-gray-900">{discount > 0 ? `-₵${discount.toLocaleString()}` : '₵0'}</p>
+                  )}
+                </div>
+                <div>
+                  <label className="text-sm text-[#170A11B2] block mb-2">Delivery Fee</label>
+                  {isEditing ? (
+                    <Input
+                      type="number"
+                      value={deliveryFee}
+                      onChange={(e) => {
+                        const newFee = parseFloat(e.target.value) || 0;
+                        const itemsTotal = formData.items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+                        const total = itemsTotal - (formData.discount || 0) + newFee + (formData.tax || 0);
+                        setFormData({ ...formData, deliveryFee: newFee, totalAmount: total });
+                      }}
+                      className="w-full"
+                    />
+                  ) : (
+                    <p className="text-xs font-medium text-gray-900">₵{deliveryFee.toLocaleString()}</p>
+                  )}
+                </div>
+                <div>
+                  <label className="text-sm text-[#170A11B2] block mb-2">Tax</label>
+                  {isEditing ? (
+                    <Input
+                      type="number"
+                      value={tax}
+                      onChange={(e) => {
+                        const newTax = parseFloat(e.target.value) || 0;
+                        const itemsTotal = formData.items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+                        const total = itemsTotal - (formData.discount || 0) + (formData.deliveryFee || 0) + newTax;
+                        setFormData({ ...formData, tax: newTax, totalAmount: total });
+                      }}
+                      className="w-full"
+                    />
+                  ) : (
+                    <p className="text-xs font-medium text-gray-900">₵{tax.toLocaleString()}</p>
+                  )}
+                </div>
               </div>
-              <div className="flex justify-between items-center">
-                <span className="text-gray-600">Discount</span>
-                {isEditing ? (
-                  <Input
-                    type="number"
-                    value={discount}
-                    onChange={(e) => {
-                      const newDiscount = parseFloat(e.target.value) || 0;
-                      const itemsTotal = formData.items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-                      const total = itemsTotal - newDiscount + (formData.deliveryFee || 0) + (formData.tax || 0);
-                      setFormData({ ...formData, discount: newDiscount, totalAmount: total });
-                    }}
-                    className="w-24"
-                  />
-                ) : (
-                  <span className="font-medium text-gray-900">{discount > 0 ? `-₵${discount.toLocaleString()}` : '₵0'}</span>
-                )}
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-gray-600">Delivery Fee</span>
-                {isEditing ? (
-                  <Input
-                    type="number"
-                    value={deliveryFee}
-                    onChange={(e) => {
-                      const newFee = parseFloat(e.target.value) || 0;
-                      const itemsTotal = formData.items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-                      const total = itemsTotal - (formData.discount || 0) + newFee + (formData.tax || 0);
-                      setFormData({ ...formData, deliveryFee: newFee, totalAmount: total });
-                    }}
-                    className="w-24"
-                  />
-                ) : (
-                  <span className="font-medium text-gray-900">₵{deliveryFee.toLocaleString()}</span>
-                )}
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-gray-600">Tax</span>
-                {isEditing ? (
-                  <Input
-                    type="number"
-                    value={tax}
-                    onChange={(e) => {
-                      const newTax = parseFloat(e.target.value) || 0;
-                      const itemsTotal = formData.items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-                      const total = itemsTotal - (formData.discount || 0) + (formData.deliveryFee || 0) + newTax;
-                      setFormData({ ...formData, tax: newTax, totalAmount: total });
-                    }}
-                    className="w-24"
-                  />
-                ) : (
-                  <span className="font-medium text-gray-900">₵{tax.toLocaleString()}</span>
-                )}
-              </div>
-              <div className="flex justify-between font-semibold text-gray-900 border-t border-gray-200 pt-2 mt-2">
-                <span>Grand Total</span>
-                <span>₵{grandTotal.toLocaleString()}</span>
+              <div className="mt-4 pt-4 border-t border-gray-200">
+                <div className="flex justify-between">
+                  <span className="text-sm font-semibold text-[#170A11B2]">Grand Total</span>
+                  <span className="text-sm font-semibold text-[#170A11B2]">₵{grandTotal.toLocaleString()}</span>
+                </div>
               </div>
             </div>
 
           {/* Footer */}
-          <DrawerFooter>
+          <DrawerFooter className="flex justify-end gap-2 pt-6 mt-8">
             {isEditing && (
               <>
                 <button
@@ -586,10 +565,10 @@ const OrderDetailsDrawer = ({ order, isOpen, onClose, mode: initialMode = 'view'
                 </button>
                 <button
                   type="submit"
-                  disabled={createOrderMutation.isPending || updateOrderMutation.isPending}
+                  disabled={createOrder.isPending || updateOrder.isPending}
                   className="px-4 py-2 bg-[#556B2F] hover:bg-[#556B2F]/90 text-white rounded font-medium disabled:opacity-50 text-sm flex items-center gap-2"
                 >
-                  {createOrderMutation.isPending || updateOrderMutation.isPending ? (
+                  {createOrder.isPending || updateOrder.isPending ? (
                     <>
                       <Loader className="w-4 h-4 animate-spin" />
                       Saving...
@@ -605,13 +584,13 @@ const OrderDetailsDrawer = ({ order, isOpen, onClose, mode: initialMode = 'view'
                 <button
                   type="button"
                   onClick={() => setMode('edit')}
-                  className="flex-1 border border-gray-300 text-gray-700 px-4 py-2 rounded font-medium hover:bg-gray-50 text-sm"
+                  className="px-4 py-2 border border-gray-300 text-gray-700 rounded font-medium hover:bg-gray-50 text-sm"
                 >
                   Edit Order
                 </button>
                 <button
                   type="button"
-                  className="flex-1 bg-[#556B2F] hover:bg-[#556B2F]/90 text-white px-4 py-2 rounded font-medium text-sm"
+                  className="px-4 py-2 bg-[#556B2F] hover:bg-[#556B2F]/90 text-white rounded font-medium text-sm"
                 >
                   Print Invoice
                 </button>
