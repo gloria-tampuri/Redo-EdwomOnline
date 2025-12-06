@@ -41,7 +41,7 @@ const PackagesTable = () => {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [packageToDelete, setPackageToDelete] = useState<Package | null>(null);
 
-  const { packages, isLoading, deletePackage } = usePackages();
+  const { packages, isLoading, isError, error, deletePackage } = usePackages();
 
   // Filter packages based on search and status
   const filteredPackages = useMemo(() => {
@@ -240,6 +240,10 @@ const PackagesTable = () => {
       {isLoading && packages.length === 0 ? (
         <div className="flex justify-center items-center h-64">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#556B2F]" />
+        </div>
+      ) : isError ? (
+        <div className="flex flex-col items-center justify-center h-64 text-red-600">
+          <p className="text-center">{error?.message || 'Failed to load packages'}</p>
         </div>
       ) : (
         <>
