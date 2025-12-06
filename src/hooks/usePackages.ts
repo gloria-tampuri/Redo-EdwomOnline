@@ -26,15 +26,25 @@ export const usePackages = () => {
   const queryClient = useQueryClient();
 
   // Fetch all packages
-  const { data: packages = [], isLoading } = useQuery<Package[]>({
+  const { data: packages = [], isLoading, isError, error } = useQuery<Package[]>({
     queryKey: ['packages'],
     queryFn: async () => {
-      const res = await fetch('/api/packages');
-      if (!res.ok) throw new Error('Failed to fetch packages');
-      return res.json();
+      try {
+        const res = await fetch('/api/packages');
+        if (!res.ok) {
+          const errorData = await res.json();
+          throw new Error(errorData.error || 'Failed to fetch packages');
+        }
+        const data = await res.json();
+        return Array.isArray(data) ? data : [];
+      } catch (err) {
+        console.error('Error fetching packages:', err);
+        throw err;
+      }
     },
     staleTime: 1000 * 60 * 5,
     gcTime: 1000 * 60 * 10,
+    retry: 2,
   });
 
   // Create package mutation
@@ -107,6 +117,8 @@ export const usePackages = () => {
   return {
     packages,
     isLoading,
+    isError,
+    error,
     createPackage,
     updatePackage,
     deletePackage,
