@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getPackageById, updatePackage, deletePackage } from '@/app/services/packageService';
+import { PackageDocument } from '@/models/Package';
 import { z } from 'zod';
 
 const PackageUpdateSchema = z.object({
@@ -15,9 +16,10 @@ const PackageUpdateSchema = z.object({
     })
   ).optional(),
   price: z.number().optional(),
+  discount: z.number().min(0, 'Discount cannot be negative'),
   status: z.enum(['active', 'inactive']).optional(),
   youtubeUrl: z.string().optional(),
-  image: z.string().optional(),
+  image: z.string().min(1, 'Image is required'),
 });
 
 export async function GET(
@@ -52,7 +54,13 @@ export async function PUT(
       );
     }
 
-    const updatedPackage = await updatePackage(id, parsed.data);
+    // Ensure discount is always included in update
+    const updateData: Partial<PackageDocument> = {
+      ...parsed.data,
+      discount: parsed.data.discount,
+    };
+
+    const updatedPackage = await updatePackage(id, updateData);
     if (!updatedPackage) {
       return NextResponse.json({ error: 'Package not found' }, { status: 404 });
     }

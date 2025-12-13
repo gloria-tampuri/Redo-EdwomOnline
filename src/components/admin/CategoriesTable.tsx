@@ -35,6 +35,7 @@ interface CategoriesTableProps {
 
 const CategoriesTable = ({ title = 'Categories' }: CategoriesTableProps) => {
   const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<Category | null>(null);
   const [showDetails, setShowDetails] = useState(false);
   const [drawerMode, setDrawerMode] = useState<'create' | 'view' | 'edit'>('view');
@@ -46,12 +47,21 @@ const CategoriesTable = ({ title = 'Categories' }: CategoriesTableProps) => {
   const { categories, isLoading, deleteCategory } = useCategories();
 
   const filteredCategories = useMemo(() => {
-    if (!searchTerm) return categories;
-    return categories.filter((cat) =>
-      cat.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      cat.description?.toLowerCase().includes(searchTerm.toLowerCase())
-    );
-  }, [categories, searchTerm]);
+    let filtered = categories;
+    
+    if (searchTerm) {
+      filtered = filtered.filter((cat) =>
+        cat.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        cat.description?.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    }
+    
+    if (statusFilter) {
+      filtered = filtered.filter((cat) => cat.status === statusFilter);
+    }
+    
+    return filtered;
+  }, [categories, searchTerm, statusFilter]);
 
   const columns: ColumnDef<Category>[] = [
     {
@@ -175,7 +185,37 @@ const CategoriesTable = ({ title = 'Categories' }: CategoriesTableProps) => {
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold text-gray-900">{title}</h2>
+        {/* <h2 className="text-2xl font-bold text-gray-900">{title}</h2> */}
+      </div>
+
+      {/* Search */}
+      <div className="flex justify-between items-center">
+       <div className="flex gap-4 w-[400px]">
+         <div className="flex-1 relative">
+          <Search className="absolute left-3 top-3 w-4 h-4 text-gray-400" />
+          <Input
+            placeholder="Search categories..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="pl-10"
+          />
+        </div>
+        <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="outline" className="gap-2">
+                      <Filter className="w-4 h-4" />
+                      Filter
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem onClick={() => setStatusFilter('')}>All</DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => setStatusFilter('active')}>Active</DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => setStatusFilter('inactive')}>
+                      Inactive
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+       </div>
         <Button
           onClick={() => {
             setSelectedCategory(null);
@@ -187,19 +227,6 @@ const CategoriesTable = ({ title = 'Categories' }: CategoriesTableProps) => {
           <Plus className="w-4 h-4 mr-2" />
           Add Category
         </Button>
-      </div>
-
-      {/* Search */}
-      <div className="flex gap-4">
-        <div className="flex-1 relative">
-          <Search className="absolute left-3 top-3 w-4 h-4 text-gray-400" />
-          <Input
-            placeholder="Search categories..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-10"
-          />
-        </div>
       </div>
 
       {/* Table */}

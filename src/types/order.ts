@@ -10,6 +10,26 @@ export interface OrderItem {
   quantity: number;
   unit: string;
   image?: string;
+  type?: 'item' | 'package'; // Distinguish between inventory items and packages
+}
+
+export interface Package {
+  _id: string;
+  name: string;
+  description?: string;
+  items: Array<{
+    itemId: string;
+    name: string;
+    quantity: number;
+    unit: string;
+    price: number;
+    image?: string;
+  }>;
+  price: number; // Total price of all items
+  discount: number; // Package discount
+  status: 'active' | 'inactive';
+  youtubeUrl?: string;
+  image?: string;
 }
 
 export interface Order {
@@ -21,7 +41,7 @@ export interface Order {
     email: string;
     address: string;
   };
-  items: OrderItem[]; // Array of order items with _id
+  items: OrderItem[]; // Array of order items (both inventory items and packages) with _id
   totalAmount: number;
   deliveryLocation: string;
   status: string; // e.g., 'Pending', 'Processing', 'Completed', 'Cancelled'

@@ -248,7 +248,11 @@ const ItemDetailsDrawer = ({ item, isOpen, onClose, mode: initialMode = 'view', 
                       </SelectContent>
                     </Select>
                   ) : (
-                    <p className="text-gray-900">{units.find(u => u._id === formData.unit)?.abbreviation || formData.unit}</p>
+                    <p className="text-gray-900">
+                      {units.find(u => u._id === formData.unit)?.abbreviation || 
+                       units.find(u => u.name === formData.unit)?.abbreviation ||
+                       formData.unit}
+                    </p>
                   )}
                 </div>
                 <div>

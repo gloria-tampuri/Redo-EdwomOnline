@@ -92,12 +92,26 @@ const PackagesTable = () => {
     },
     {
       accessorKey: 'price',
-      header: 'Price',
+      header: 'Total Price',
       cell: ({ row }) => <span>₵{(row.getValue('price') as number).toLocaleString()}</span>,
     },
     {
+      accessorKey: 'discount',
+      header: 'Discount',
+      cell: ({ row }) => <span>₵{((row.original.discount || 0)).toLocaleString()}</span>,
+    },
+    {
+      id: 'priceAfterDiscount',
+      header: 'Final Price',
+      cell: ({ row }) => {
+        const itemsTotal = row.original.items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+        const finalPrice = itemsTotal - (row.original.discount || 0);
+        return <span className="font-semibold">₵{finalPrice.toLocaleString()}</span>;
+      },
+    },
+    {
       accessorKey: 'status',
-      header: 'Price Status',
+      header: 'Status',
       cell: ({ row }) => (
         <span
           className={`px-3 py-1 rounded-full text-xs font-medium ${
@@ -195,22 +209,12 @@ const PackagesTable = () => {
       {/* Header with Title and Create Button */}
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold text-gray-900">Packages</h1>
-        <Button
-          onClick={() => {
-            setSelectedPackage(null);
-            setDrawerMode('create');
-            setShowDetails(true);
-          }}
-          className="bg-[#556B2F] hover:bg-[#556B2F]/90 text-white"
-        >
-          <Plus className="w-4 h-4 mr-2" />
-          Create Package
-        </Button>
       </div>
 
       {/* Search and Filter Bar */}
-      <div className="flex gap-4">
-        <div className="flex-1 relative">
+      <div className="flex justify-between">
+        <div className='flex gap-4'>
+          <div className="flex-1 w-[400px] relative">
           <Search className="absolute left-2.5 top-2.5 w-4 h-4 text-gray-400" />
           <Input
             placeholder="Search category name ..."
@@ -234,6 +238,18 @@ const PackagesTable = () => {
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
+        </div>
+         <Button
+          onClick={() => {
+            setSelectedPackage(null);
+            setDrawerMode('create');
+            setShowDetails(true);
+          }}
+          className="bg-[#556B2F] hover:bg-[#556B2F]/90 text-white"
+        >
+          <Plus className="w-4 h-4 mr-2" />
+          Create Package
+        </Button>
       </div>
 
       {/* Loading State */}

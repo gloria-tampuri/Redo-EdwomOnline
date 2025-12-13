@@ -8,6 +8,7 @@ import {
   getPaginationRowModel,
   getSortedRowModel,
   SortingState,
+  flexRender,
 } from '@tanstack/react-table';
 import { Trash2, MoreVertical, Plus, Search } from 'lucide-react';
 import {
@@ -148,19 +149,13 @@ export default function UnitsTable() {
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-gray-900">Units</h1>
-        <Button
-          onClick={handleCreate}
-          className="bg-primary hover:bg-primary/90 text-white"
-        >
-          <Plus className="w-4 h-4 mr-2" />
-          Add Unit
-        </Button>
+        {/* <h2 className="text-2xl font-bold text-gray-900">Units</h2> */}
       </div>
 
       {/* Search */}
-      <div className="flex gap-4">
-        <div className="flex-1 relative">
+      <div className="flex justify-between items-center">
+        <div className='w-[400px]'>
+          <div className="flex-1 relative ">
           <Search className="absolute left-3 top-3 w-4 h-4 text-gray-400" />
           <Input
             placeholder="Search units..."
@@ -169,10 +164,63 @@ export default function UnitsTable() {
             className="pl-10"
           />
         </div>
+        </div>
+        <Button
+          onClick={handleCreate}
+          className="bg-primary hover:bg-primary/90 text-white ml-4"
+        >
+          <Plus className="w-4 h-4 mr-2" />
+          Add Unit
+        </Button>
       </div>
 
       {/* Table */}
-      <DataTable table={table} columns={columns} isLoading={isLoading} emptyMessage="units" />
+      <div className="border border-gray-200 rounded-lg overflow-hidden">
+        <table className="w-full">
+          <thead className="bg-gray-50 border-b border-gray-200">
+            {table.getHeaderGroups().map((headerGroup) => (
+              <tr key={headerGroup.id}>
+                {headerGroup.headers.map((header) => (
+                  <th
+                    key={header.id}
+                    className="px-6 py-3 text-left text-sm font-semibold text-gray-900"
+                  >
+                    {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
+                  </th>
+                ))}
+              </tr>
+            ))}
+          </thead>
+          <tbody>
+            {isLoading ? (
+              <tr>
+                <td colSpan={columns.length} className="px-6 py-8 text-center text-gray-500">
+                  Loading units...
+                </td>
+              </tr>
+            ) : table.getRowModel().rows.length === 0 ? (
+              <tr>
+                <td colSpan={columns.length} className="px-6 py-16 text-center">
+                  <div className="flex flex-col items-center justify-center gap-2">
+                    <NoItem />
+                    <p className="text-gray-500 text-sm font-medium">No units added</p>
+                  </div>
+                </td>
+              </tr>
+            ) : (
+              table.getRowModel().rows.map((row) => (
+                <tr key={row.id} className="border-b border-gray-200 hover:bg-gray-50 transition">
+                  {row.getVisibleCells().map((cell) => (
+                    <td key={cell.id} className="px-6 py-4 text-sm text-gray-600">
+                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                    </td>
+                  ))}
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
 
       {/* Pagination */}
       <TablePagination table={table} totalItems={filteredUnits.length} />
