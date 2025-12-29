@@ -56,7 +56,6 @@ openssl rand -base64 32
 
 ### Step 1: Create Vercel Project
 ```bash
-# Option A: Via Vercel Dashboard (Recommended)
 1. Visit https://vercel.com/dashboard
 2. Click "Add New..." → "Project"
 3. Select your GitHub repository

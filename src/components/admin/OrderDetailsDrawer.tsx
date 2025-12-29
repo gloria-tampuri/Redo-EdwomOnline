@@ -19,8 +19,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Order, OrderItem, InventoryItem } from '@/types/order';
+import { Order, OrderItem, InventoryItem, Package } from '@/types/order';
 import { useOrders } from '@/hooks/useOrders';
+import { useUnits } from '@/hooks/useUnits';
 
 type DrawerMode = 'create' | 'view' | 'edit';
 
@@ -36,6 +37,7 @@ const OrderDetailsDrawer = ({ order, isOpen, onClose, mode: initialMode = 'view'
   const [mode, setMode] = useState<DrawerMode>(initialMode);
   const [itemSearchInput, setItemSearchInput] = useState('');
   const [showItemDropdown, setShowItemDropdown] = useState(false);
+  const [selectedTab, setSelectedTab] = useState<'items' | 'packages'>('items');
   const [formData, setFormData] = useState<Order>(order || {
     orderId: '',
     customer: { name: '', phone: '', email: '', address: '' },
@@ -51,6 +53,14 @@ const OrderDetailsDrawer = ({ order, isOpen, onClose, mode: initialMode = 'view'
   });
   
   const { createOrder, updateOrder } = useOrders();
+  const { units } = useUnits();
+
+  // Helper function to get unit name from unit ID
+  const getUnitName = (unitId: string) => {
+    if (!units) return unitId;
+    const unit = units.find((u: any) => u._id === unitId);
+    return unit?.abbreviation || unitId;
+  };
 
   // Fetch available items from inventory
   const { data: availableItems = [] } = useQuery<InventoryItem[]>({
@@ -58,6 +68,16 @@ const OrderDetailsDrawer = ({ order, isOpen, onClose, mode: initialMode = 'view'
     queryFn: async () => {
       const res = await fetch('/api/items');
       if (!res.ok) throw new Error('Failed to fetch items');
+      return res.json();
+    },
+  });
+
+  // Fetch available packages
+  const { data: availablePackages = [] } = useQuery<Package[]>({
+    queryKey: ['packages'],
+    queryFn: async () => {
+      const res = await fetch('/api/packages');
+      if (!res.ok) throw new Error('Failed to fetch packages');
       return res.json();
     },
   });
@@ -70,6 +90,14 @@ const OrderDetailsDrawer = ({ order, isOpen, onClose, mode: initialMode = 'view'
       item.category?.toLowerCase().includes(itemSearchInput.toLowerCase())
     );
   }, [availableItems, itemSearchInput]);
+
+  // Filter packages based on search
+  const filteredPackages = useMemo(() => {
+    if (!itemSearchInput.trim()) return availablePackages.filter(pkg => pkg.status === 'active');
+    return availablePackages.filter(pkg =>
+      pkg.status === 'active' && pkg.name.toLowerCase().includes(itemSearchInput.toLowerCase())
+    );
+  }, [availablePackages, itemSearchInput]);
 
   // Generate unique order ID
   const generateOrderId = () => {
@@ -350,12 +378,44 @@ const OrderDetailsDrawer = ({ order, isOpen, onClose, mode: initialMode = 'view'
 
               {isEditing && (
                 <div className="mb-4">
-                  {/* <label className="text-xs font-semibold text-gray-700 block mb-2">Search & Add Items</label> */}
+                  {/* Tabs for Items/Packages */}
+                  <div className="flex gap-2 mb-3 border-b border-gray-200">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelectedTab('items');
+                        setItemSearchInput('');
+                      }}
+                      className={`px-3 py-2 text-sm font-medium ${
+                        selectedTab === 'items'
+                          ? 'text-green-600 border-b-2 border-green-600'
+                          : 'text-gray-600 hover:text-gray-900'
+                      }`}
+                    >
+                      Items
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelectedTab('packages');
+                        setItemSearchInput('');
+                      }}
+                      className={`px-3 py-2 text-sm font-medium ${
+                        selectedTab === 'packages'
+                          ? 'text-green-600 border-b-2 border-green-600'
+                          : 'text-gray-600 hover:text-gray-900'
+                      }`}
+                    >
+                      Packages
+                    </button>
+                  </div>
+
+                  {/* Search Bar */}
                   <div className="relative">
                     <Search className="absolute left-2.5 top-2.5 w-4 h-4 text-gray-400" />
                     <Input
                       type="text"
-                      placeholder="Search items by name or category..."
+                      placeholder={selectedTab === 'items' ? "Search items by name or category..." : "Search packages..."}
                       value={itemSearchInput}
                       onChange={(e) => setItemSearchInput(e.target.value)}
                       onFocus={() => setShowItemDropdown(true)}
@@ -364,52 +424,105 @@ const OrderDetailsDrawer = ({ order, isOpen, onClose, mode: initialMode = 'view'
                     
                     {showItemDropdown && itemSearchInput && (
                       <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-300 rounded-md shadow-lg z-10 max-h-60 overflow-y-auto">
-                        {filteredItems.length > 0 ? (
-                          filteredItems.map((invItem) => (
-                            <button
-                              key={invItem._id}
-                              type="button"
-                              onClick={() => {
-                                // Check if item already exists
-                                const existingIndex = formData.items.findIndex(i => i._id === invItem._id);
-                                if (existingIndex === -1) {
-                                  // Add new item
-                                  const newItems = [
-                                    ...formData.items,
-                                    {
-                                      _id: invItem._id,
-                                      name: invItem.name,
-                                      price: invItem.price,
-                                      quantity: 1,
-                                      unit: invItem.unit,
-                                      image: invItem.image,
-                                    },
-                                  ];
-                                  // Recalculate total when item is added
-                                  const itemsTotal = newItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-                                  const total = itemsTotal - (formData.discount || 0) + (formData.deliveryFee || 0) + (formData.tax || 0);
-                                  setFormData({
-                                    ...formData,
-                                    items: newItems,
-                                    totalAmount: total,
-                                  });
-                                }
-                                setItemSearchInput('');
-                                setShowItemDropdown(false);
-                              }}
-                              className="w-full px-3 py-2 text-left hover:bg-gray-100 border-b border-gray-100 last:border-0 flex items-center gap-2"
-                            >
-                              {invItem.image && (
-                                <img src={invItem.image} alt={invItem.name} className="w-8 h-8 rounded object-cover" />
-                              )}
-                              <div className="flex-1">
-                                <p className="text-sm font-medium text-gray-900">{invItem.name}</p>
-                                <p className="text-xs text-gray-500">₵{invItem.price.toLocaleString()} • {invItem.unit}</p>
-                              </div>
-                            </button>
-                          ))
+                        {selectedTab === 'items' ? (
+                          filteredItems.length > 0 ? (
+                            filteredItems.map((invItem) => (
+                              <button
+                                key={invItem._id}
+                                type="button"
+                                onClick={() => {
+                                  // Check if item already exists
+                                  const existingIndex = formData.items.findIndex(i => i._id === invItem._id);
+                                  if (existingIndex === -1) {
+                                    // Add new item
+                                    const newItems = [
+                                      ...formData.items,
+                                      {
+                                        _id: invItem._id,
+                                        name: invItem.name,
+                                        price: invItem.price,
+                                        quantity: 1,
+                                        unit: invItem.unit,
+                                        image: invItem.image,
+                                        type: 'item' as const,
+                                      },
+                                    ];
+                                    // Recalculate total when item is added
+                                    const itemsTotal = newItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+                                    const total = itemsTotal - (formData.discount || 0) + (formData.deliveryFee || 0) + (formData.tax || 0);
+                                    setFormData({
+                                      ...formData,
+                                      items: newItems,
+                                      totalAmount: total,
+                                    });
+                                  }
+                                  setItemSearchInput('');
+                                  setShowItemDropdown(false);
+                                }}
+                                className="w-full px-3 py-2 text-left hover:bg-gray-100 border-b border-gray-100 last:border-0 flex items-center gap-2"
+                              >
+                                {invItem.image && (
+                                  <img src={invItem.image} alt={invItem.name} className="w-8 h-8 rounded object-cover" />
+                                )}
+                                <div className="flex-1">
+                                  <p className="text-sm font-medium text-gray-900">{invItem.name}</p>
+                                  <p className="text-xs text-gray-500">₵{invItem.price.toLocaleString()} • {getUnitName(invItem.unit)}</p>
+                                </div>
+                              </button>
+                            ))
+                          ) : (
+                            <div className="px-3 py-2 text-sm text-gray-500">No items found</div>
+                          )
                         ) : (
-                          <div className="px-3 py-2 text-sm text-gray-500">No items found</div>
+                          filteredPackages.length > 0 ? (
+                            filteredPackages.map((pkg) => (
+                              <button
+                                key={pkg._id}
+                                type="button"
+                                onClick={() => {
+                                  // Check if package already exists
+                                  const existingIndex = formData.items.findIndex(i => i._id === pkg._id);
+                                  if (existingIndex === -1) {
+                                    // Add new package
+                                    const packagePrice = Math.max(0, pkg.price - pkg.discount);
+                                    const newItems = [
+                                      ...formData.items,
+                                      {
+                                        _id: pkg._id,
+                                        name: pkg.name,
+                                        price: packagePrice,
+                                        quantity: 1,
+                                        unit: 'package',
+                                        image: pkg.image,
+                                        type: 'package' as const,
+                                      },
+                                    ];
+                                    // Recalculate total when package is added
+                                    const itemsTotal = newItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+                                    const total = itemsTotal - (formData.discount || 0) + (formData.deliveryFee || 0) + (formData.tax || 0);
+                                    setFormData({
+                                      ...formData,
+                                      items: newItems,
+                                      totalAmount: total,
+                                    });
+                                  }
+                                  setItemSearchInput('');
+                                  setShowItemDropdown(false);
+                                }}
+                                className="w-full px-3 py-2 text-left hover:bg-gray-100 border-b border-gray-100 last:border-0 flex items-center gap-2"
+                              >
+                                {pkg.image && (
+                                  <img src={pkg.image} alt={pkg.name} className="w-8 h-8 rounded object-cover" />
+                                )}
+                                <div className="flex-1">
+                                  <p className="text-sm font-medium text-gray-900">{pkg.name}</p>
+                                  <p className="text-xs text-gray-500">₵{(pkg.price - pkg.discount).toLocaleString()} ({pkg.items.length} items)</p>
+                                </div>
+                              </button>
+                            ))
+                          ) : (
+                            <div className="px-3 py-2 text-sm text-gray-500">No packages found</div>
+                          )
                         )}
                       </div>
                     )}
@@ -437,7 +550,14 @@ const OrderDetailsDrawer = ({ order, isOpen, onClose, mode: initialMode = 'view'
                         {/* Item Details */}
                         <div className="flex-1 min-w-0">
                           <div className="flex justify-between items-start gap-2">
-                            <p className="font-semibold text-[#12170AB2] text-sm">{item.name}</p>
+                            <div className="flex items-center gap-2">
+                              <p className="font-semibold text-[#12170AB2] text-sm">{item.name}</p>
+                              {item.type === 'package' && (
+                                <span className="px-1.5 py-0.5 bg-blue-100 text-blue-700 text-xs rounded font-medium">
+                                  Package
+                                </span>
+                              )}
+                            </div>
                             <p className="text-xstext-gray-900 flex-shrink-0">₵{((item.price || 0) * (item.quantity || 0)).toLocaleString()}</p>
                           </div>
                           {isEditing ? (
@@ -445,9 +565,23 @@ const OrderDetailsDrawer = ({ order, isOpen, onClose, mode: initialMode = 'view'
                               <Input
                                 type="number"
                                 value={item.quantity}
-                                onChange={(e) =>
-                                  handleItemChange(idx, 'quantity', Math.max(1, parseInt(e.target.value) || 1))
-                                }
+                                onChange={(e) => {
+                                  const value = e.target.value;
+                                  if (value === '' || value === '0') {
+                                    // Allow empty for now, will validate on blur
+                                    handleItemChange(idx, 'quantity', 0);
+                                  } else {
+                                    const num = parseInt(value);
+                                    if (!isNaN(num) && num > 0) {
+                                      handleItemChange(idx, 'quantity', num);
+                                    }
+                                  }
+                                }}
+                                onBlur={(e) => {
+                                  // On blur, ensure minimum of 1
+                                  const value = parseInt(e.target.value) || 1;
+                                  handleItemChange(idx, 'quantity', Math.max(1, value));
+                                }}
                                 min="1"
                                 className="w-12 h-6"
                               />
@@ -455,11 +589,11 @@ const OrderDetailsDrawer = ({ order, isOpen, onClose, mode: initialMode = 'view'
                                 Qty: {item.quantity}
                               </span>
                               <span className="text-xs text-gray-600">•</span>
-                              <p className="text-xs text-gray-600">₵{item.price.toLocaleString()} per {item.unit}</p>
+                              <p className="text-xs text-gray-600">₵{item.price.toLocaleString()} per {getUnitName(item.unit)}</p>
                             </div>
                           ) : (
                             <p className="text-xs text-gray-700 mt-1">
-                              Qty: {item.quantity} • ₵{item.price.toLocaleString()} per {item.unit}
+                              Qty: {item.quantity} • ₵{item.price.toLocaleString()} per {getUnitName(item.unit)}
                             </p>
                           )}
                         </div>

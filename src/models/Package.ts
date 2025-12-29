@@ -5,7 +5,9 @@ export interface PackageItem {
   name: string;
   quantity: number;
   unit: string;
+  unitName?: string;
   price: number;
+  image?: string;
 }
 
 export interface PackageDocument extends Document {
@@ -13,6 +15,7 @@ export interface PackageDocument extends Document {
   description: string;
   items: PackageItem[];
   price: number;
+  discount: number;
   status: 'active' | 'inactive';
   youtubeUrl?: string;
   image?: string;
@@ -25,7 +28,9 @@ const PackageItemSchema = new Schema<PackageItem>({
   name: { type: String, required: true },
   quantity: { type: Number, required: true },
   unit: { type: String, required: true },
+  unitName: { type: String, default: '' },
   price: { type: Number, required: true },
+  image: { type: String, default: '' },
 });
 
 const PackageSchema = new Schema<PackageDocument>(
@@ -34,6 +39,7 @@ const PackageSchema = new Schema<PackageDocument>(
     description: { type: String, default: '' },
     items: [PackageItemSchema],
     price: { type: Number, required: true },
+    discount: { type: Number, default: 0 },
     status: { type: String, enum: ['active', 'inactive'], default: 'active' },
     youtubeUrl: { type: String, default: '' },
     image: { type: String, default: '' },

@@ -6,7 +6,9 @@ export interface PackageItem {
   name: string;
   quantity: number;
   unit: string;
+  unitName?: string;
   price: number;
+  image?: string;
 }
 
 export interface Package {
@@ -15,6 +17,7 @@ export interface Package {
   description: string;
   items: PackageItem[];
   price: number;
+  discount: number;
   status: 'active' | 'inactive';
   youtubeUrl?: string;
   image?: string;

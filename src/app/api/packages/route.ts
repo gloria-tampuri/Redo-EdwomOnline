@@ -16,9 +16,10 @@ const PackageSchema = z.object({
     })
   ),
   price: z.number(),
+  discount: z.number().min(0, 'Discount cannot be negative'),
   status: z.enum(['active', 'inactive']).default('active'),
   youtubeUrl: z.string().optional(),
-  image: z.string().optional(),
+  image: z.string().min(1, 'Image is required'),
 });
 
 export async function GET() {
@@ -47,6 +48,7 @@ export async function POST(req: NextRequest) {
       description: parsed.data.description,
       items: parsed.data.items,
       price: parsed.data.price,
+      discount: parsed.data.discount,
       status: parsed.data.status,
       youtubeUrl: parsed.data.youtubeUrl,
       image: parsed.data.image,
