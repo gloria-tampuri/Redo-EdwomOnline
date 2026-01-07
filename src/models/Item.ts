@@ -1,8 +1,8 @@
-import mongoose, { Document, Schema } from 'mongoose';
+import mongoose, { Document, Schema, Types } from 'mongoose';
 
 interface ItemDocument extends Document {
   name: string;
-  category: string;
+  category: Types.ObjectId;
   description?: string;
   price: number;
   unit: string;
@@ -23,7 +23,8 @@ const ItemSchema = new Schema<ItemDocument>(
       trim: true,
     },
     category: {
-      type: String,
+      type: Schema.Types.ObjectId,
+      ref: 'Category',
       required: true,
     },
     description: {

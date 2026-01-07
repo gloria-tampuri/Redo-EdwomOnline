@@ -10,7 +10,10 @@ export async function GET(req: NextRequest) {
     return NextResponse.json(categories);
   } catch (error) {
     console.error('Failed to fetch categories:', error);
-    return NextResponse.json({ error: 'Failed to fetch categories' }, { status: 500 });
+    return NextResponse.json(
+      { error: 'Failed to fetch categories', details: String(error) },
+      { status: 500 }
+    );
   }
 }
 
@@ -33,6 +36,9 @@ export async function POST(req: NextRequest) {
     if (error.code === 11000) {
       return NextResponse.json({ error: 'Category name already exists' }, { status: 409 });
     }
-    return NextResponse.json({ error: 'Failed to create category' }, { status: 500 });
+    return NextResponse.json(
+      { error: 'Failed to create category', details: String(error) },
+      { status: 500 }
+    );
   }
 }

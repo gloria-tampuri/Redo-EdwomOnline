@@ -27,7 +27,11 @@ export async function GET() {
     const packages = await getPackages();
     return NextResponse.json(packages);
   } catch (error) {
-    return NextResponse.json({ error: 'Failed to fetch packages' }, { status: 500 });
+    console.error('Error fetching packages:', error);
+    return NextResponse.json(
+      { error: 'Failed to fetch packages', details: String(error) },
+      { status: 500 }
+    );
   }
 }
 
@@ -58,6 +62,9 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(newPackage, { status: 201 });
   } catch (error) {
     console.error('Error creating package:', error);
-    return NextResponse.json({ error: 'Failed to create package' }, { status: 500 });
+    return NextResponse.json(
+      { error: 'Failed to create package', details: String(error) },
+      { status: 500 }
+    );
   }
 }

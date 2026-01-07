@@ -1,28 +1,44 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/hooks/useAuth';
+import { useCart } from '@/context/CartContext';
 import { Logo } from '../ui/logo';
+import { ShoppingCart } from 'lucide-react';
 
 export function Header() {
   const { user, isAuthenticated, isAdmin, signOut } = useAuth();
+  const { state: cartState } = useCart();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   return (
-    <header className="bg-white shadow">
+    <header className="bg-white border-b border-gray-200">
       <nav className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
         {/* Logo */}
         <Logo href="/" />
 
         {/* Desktop Navigation */}
         <div className="hidden md:flex items-center gap-8">
-          <Link href="/" className="text-gray-600 hover:text-gray-900 transition">
+          <Link href="/" className="text-gray-600 hover:text-gray-900 transition font-medium">
             Shop
           </Link>
-          <Link href="/" className="text-gray-600 hover:text-gray-900 transition">
+          <Link href="/" className="text-gray-600 hover:text-gray-900 transition font-medium">
             Packages
           </Link>
-          <Link href="/" className="text-gray-600 hover:text-gray-900 transition">
+          <Link href="/" className="text-gray-600 hover:text-gray-900 transition font-medium">
             About
+          </Link>
+
+          {/* Cart Icon */}
+          <Link
+            href="/checkout"
+            className="relative p-2 text-gray-600 hover:text-gray-900 transition"
+          >
+            <ShoppingCart size={24} />
+            {cartState.totalItems > 0 && (
+              <span className="absolute top-0 right-0 bg-[#556B2F] text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
+                {cartState.totalItems}
+              </span>
+            )}
           </Link>
 
           {/* Auth Section */}
@@ -31,13 +47,13 @@ export function Header() {
               {isAdmin && (
                 <Link
                   href="/admin/dashboard"
-                  className="px-3 py-1 rounded-lg bg-primary text-white text-sm font-medium hover:bg-primary/90 transition"
+                  className="px-3 py-1 rounded-lg bg-[#556B2F] text-white text-sm font-medium hover:bg-[#4a5c2a] transition"
                 >
                   Admin Dashboard
                 </Link>
               )}
               <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-full bg-primary text-white flex items-center justify-center font-bold">
+                <div className="w-8 h-8 rounded-full bg-[#556B2F] text-white flex items-center justify-center font-bold">
                   {user.name?.charAt(0).toUpperCase() || user.email.charAt(0).toUpperCase()}
                 </div>
                 <div className="text-sm">
@@ -62,7 +78,7 @@ export function Header() {
               </Link>
               <Link
                 href="/auth/signup"
-                className="px-4 py-2 rounded-lg bg-primary text-white font-medium hover:bg-primary/90 transition"
+                className="px-4 py-2 rounded-lg bg-[#556B2F] text-white font-medium hover:bg-[#4a5c2a] transition"
               >
                 Sign Up
               </Link>
@@ -70,8 +86,19 @@ export function Header() {
           )}
         </div>
 
-        {/* Mobile Menu Button */}
-        <div className="md:hidden">
+        {/* Mobile Menu Button & Cart */}
+        <div className="md:hidden flex items-center gap-4">
+          <Link
+            href="/checkout"
+            className="relative p-2 text-gray-600 hover:text-gray-900 transition"
+          >
+            <ShoppingCart size={20} />
+            {cartState.totalItems > 0 && (
+              <span className="absolute top-0 right-0 bg-[#556B2F] text-white text-xs font-bold rounded-full w-4 h-4 flex items-center justify-center text-[10px]">
+                {cartState.totalItems}
+              </span>
+            )}
+          </Link>
           <button
             onClick={() => setIsMenuOpen(!isMenuOpen)}
             className="text-gray-900 hover:text-gray-600"
@@ -99,19 +126,19 @@ export function Header() {
           <div className="px-4 py-4 space-y-2">
             <Link
               href="/"
-              className="block px-4 py-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded transition"
+              className="block px-4 py-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded transition font-medium"
             >
               Shop
             </Link>
             <Link
               href="/"
-              className="block px-4 py-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded transition"
+              className="block px-4 py-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded transition font-medium"
             >
               Packages
             </Link>
             <Link
               href="/"
-              className="block px-4 py-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded transition"
+              className="block px-4 py-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded transition font-medium"
             >
               About
             </Link>
@@ -121,7 +148,7 @@ export function Header() {
                 {isAdmin && (
                   <Link
                     href="/admin/dashboard"
-                    className="block px-4 py-2 rounded-lg bg-primary text-white font-medium hover:bg-primary/90 transition"
+                    className="block px-4 py-2 rounded-lg bg-[#556B2F] text-white font-medium hover:bg-[#4a5c2a] transition"
                   >
                     Admin Dashboard
                   </Link>
@@ -146,7 +173,7 @@ export function Header() {
                 </Link>
                 <Link
                   href="/auth/signup"
-                  className="block px-4 py-2 rounded-lg bg-primary text-white font-medium hover:bg-primary/90 transition"
+                  className="block px-4 py-2 rounded-lg bg-[#556B2F] text-white font-medium hover:bg-[#4a5c2a] transition"
                 >
                   Sign Up
                 </Link>

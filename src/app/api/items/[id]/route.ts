@@ -40,7 +40,7 @@ export async function PUT(req: NextRequest, { params }: { params: ParamsType }) 
       );
     }
 
-    const item = await itemService.updateItem(id, validation.data);
+    const item = await itemService.updateItem(id, validation.data as any);
 
     if (!item) {
       return NextResponse.json(
