@@ -7,7 +7,7 @@ import { usePackages } from "@/hooks/usePackages";
 import { ItemCard } from "@/components/products/ItemCard";
 import { CategoryCard } from "@/components/products/CategoryCard";
 import { PackageCard } from "@/components/products/PackageCard";
-import { Carousel } from "@/components/products/Carousel";
+
 import { HeroSlider } from "@/components/products/HeroSlider";
 
 const heroSlides = [
@@ -56,8 +56,8 @@ export default function Home() {
 
       {/* Categories Section */}
       {!categoriesLoading && activeCategories.length > 0 && (
-        <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 md:py-20">
-          <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-12">
+        <section className=" mx-auto px-4 sm:px-6 lg:px-8 py-12 md:py-20">
+          <h2 className="text-3xl md:text-4xl font-bold text-[#12170AB2] mb-12">
             Categories
           </h2>
 
@@ -80,28 +80,28 @@ export default function Home() {
       )}
 
       {/* Promotional Banners */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <Carousel itemsPerView={2}>
+      <section className=" mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="grid gap-6 grid-cols-1 md:grid-cols-2">
           <div className="h-40 md:h-48 rounded-lg bg-gradient-to-r from-[#556B2F] to-[#7CB342] flex items-center justify-center text-white text-center p-6 cursor-pointer hover:shadow-lg transition">
             <div>
               <h3 className="text-2xl font-bold mb-2">Special Offers</h3>
               <p className="text-sm">Check out exclusive deals this week</p>
             </div>
           </div>
-          <div className="h-40 md:h-48 rounded-lg bg-gradient-to-r from-[#00CC4D] to-[#00b340] flex items-center justify-center text-gray-900 text-center p-6 cursor-pointer hover:shadow-lg transition">
+          <div className="h-40 md:h-48 rounded-lg bg-gradient-to-r from-[#00CC4D] to-[#00b340] flex items-center justify-center text-[#12170AB2] text-center p-6 cursor-pointer hover:shadow-lg transition">
             <div>
               <h3 className="text-2xl font-bold mb-2">Free Delivery</h3>
               <p className="text-sm">On orders above GHS 100</p>
             </div>
           </div>
-        </Carousel>
+        </div>
       </section>
 
       {/* Popular Groceries Section */}
       {!itemsLoading && inStockItems.length > 0 && (
-        <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 md:py-20">
+        <section className=" mx-auto px-4 sm:px-6 lg:px-8 py-12 md:py-20">
           <div className="flex justify-between items-center mb-12">
-            <h2 className="text-3xl md:text-4xl font-bold text-gray-900">
+            <h2 className="text-3xl md:text-4xl font-bold text-[#12170AB2]">
               Popular Groceries
             </h2>
             <Link
@@ -112,7 +112,7 @@ export default function Home() {
             </Link>
           </div>
 
-          <Carousel itemsPerView={4}>
+          <div className="grid gap-6 grid-cols-[repeat(auto-fill,minmax(300px,1fr))]">
             {inStockItems.map((item) => (
               <ItemCard
                 key={item._id}
@@ -126,15 +126,15 @@ export default function Home() {
                 type="item"
               />
             ))}
-          </Carousel>
+          </div>
         </section>
       )}
 
       {/* Meal Packages Section */}
       {!packagesLoading && activePackages.length > 0 && (
-        <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 md:py-20">
+        <section className=" mx-auto px-4 sm:px-6 lg:px-8 py-12 md:py-20">
           <div className="flex justify-between items-center mb-12">
-            <h2 className="text-3xl md:text-4xl font-bold text-gray-900">
+            <h2 className="text-3xl md:text-4xl font-bold text-[#12170AB2]">
               Meal Packages
             </h2>
             <Link
@@ -145,7 +145,7 @@ export default function Home() {
             </Link>
           </div>
 
-          <Carousel itemsPerView={4}>
+          <div className="grid gap-6 grid-cols-[repeat(auto-fill,minmax(300px,1fr))]">
             {activePackages.map((pkg) => (
               <PackageCard
                 key={pkg._id || ""}
@@ -158,7 +158,7 @@ export default function Home() {
                 items={pkg.items as any}
               />
             ))}
-          </Carousel>
+          </div>
         </section>
       )}
 

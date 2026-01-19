@@ -70,6 +70,16 @@ const ItemsPage = () => {
 
   const { items, isLoading, deleteItem } = useItems();
 
+  // Normalize item data for the drawer (convert nested objects to IDs)
+  const normalizeItem = (item: Item): Item => {
+    return {
+      ...item,
+      category:
+        typeof item.category === "object" ? item.category._id : item.category,
+      unit: typeof item.unit === "object" ? (item.unit as any)._id : item.unit,
+    };
+  };
+
   // Filter items based on search and status
   const filteredItems = useMemo(() => {
     return items.filter((item) => {
@@ -208,7 +218,7 @@ const ItemsPage = () => {
             <DropdownMenuContent align="end">
               <DropdownMenuItem
                 onClick={() => {
-                  setSelectedItem(row.original);
+                  setSelectedItem(normalizeItem(row.original));
                   setDrawerMode("view");
                   setShowDetails(true);
                 }}
@@ -217,7 +227,7 @@ const ItemsPage = () => {
               </DropdownMenuItem>
               <DropdownMenuItem
                 onClick={() => {
-                  setSelectedItem(row.original);
+                  setSelectedItem(normalizeItem(row.original));
                   setDrawerMode("edit");
                   setShowDetails(true);
                 }}

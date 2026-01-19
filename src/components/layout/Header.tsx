@@ -12,7 +12,7 @@ export function Header() {
 
   return (
     <header className="bg-white border-b border-gray-200">
-      <nav className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
+      <nav className="mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
         {/* Logo */}
         <Logo href="/" />
 

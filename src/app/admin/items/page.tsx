@@ -1,10 +1,10 @@
-'use client';
+"use client";
 
-import { useSession } from 'next-auth/react';
-import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
-import { AdminLayout } from '@/components/admin/AdminLayout';
-import ItemsTable from '@/components/admin/ItemsTable';
+import { useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import { AdminLayout } from "@/components/admin/AdminLayout";
+import ItemsTable from "@/components/admin/ItemsTable";
 
 export default function ItemsPage() {
   const { data: session, status } = useSession();
@@ -12,16 +12,16 @@ export default function ItemsPage() {
   const [isChecking, setIsChecking] = useState(true);
 
   useEffect(() => {
-    if (status === 'loading') return;
+    if (status === "loading") return;
 
     if (!session) {
-      router.push('/auth/admin-login');
+      router.push("/auth/admin-login");
       return;
     }
 
     const userRole = (session.user as any)?.role;
-    if (userRole !== 'admin' && userRole !== 'super-admin') {
-      router.push('/');
+    if (userRole !== "admin" && userRole !== "super-admin") {
+      router.push("/");
       return;
     }
 
@@ -38,7 +38,7 @@ export default function ItemsPage() {
 
   return (
     <AdminLayout>
-      <div className="max-w-7xl mx-auto px-6 py-8">
+      <div className=" mx-auto px-6 py-8">
         <ItemsTable />
       </div>
     </AdminLayout>

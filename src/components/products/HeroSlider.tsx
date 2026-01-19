@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import Link from "next/link";
+import Image from "next/image";
 
 interface HeroSlide {
   image: string;
@@ -69,17 +70,23 @@ export const HeroSlider: React.FC<HeroSliderProps> = ({
             index === currentIndex ? "opacity-100 z-10" : "opacity-0 z-0"
           }`}
         >
-          {/* Background Image */}
-          <div
-            className="absolute inset-0 bg-cover bg-center"
-            style={{ backgroundImage: `url(${slide.image})` }}
+          {/* Background Image - using Next Image for optimization */}
+          <Image
+            src={slide.image}
+            alt={slide.title}
+            fill
+            className="object-cover"
+            priority={index === 0}
+            quality={85}
+            sizes="100vw"
+            placeholder="empty"
           />
 
           {/* Gradient Overlay */}
           <div className="absolute inset-0 bg-gradient-to-r from-[#556B2F]/90 via-[#556B2F]/60 to-transparent" />
 
           {/* Content */}
-          <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-full flex items-center z-20">
+          <div className="relative mx-auto px-4 sm:px-6 lg:px-8 h-full flex items-center z-20">
             <div className="w-full md:w-2/3 lg:w-1/2">
               <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-4 leading-tight">
                 {slide.title}

@@ -1,12 +1,12 @@
-'use client';
+"use client";
 
-import { useSession } from 'next-auth/react';
-import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
-import { AdminLayout } from '@/components/admin/AdminLayout';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import CategoriesTable from '@/components/admin/CategoriesTable';
-import UnitsTable from '@/components/admin/UnitsTable';
+import { useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import { AdminLayout } from "@/components/admin/AdminLayout";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import CategoriesTable from "@/components/admin/CategoriesTable";
+import UnitsTable from "@/components/admin/UnitsTable";
 
 export default function CategoriesAndUnitsPage() {
   const { data: session, status } = useSession();
@@ -14,16 +14,16 @@ export default function CategoriesAndUnitsPage() {
   const [isChecking, setIsChecking] = useState(true);
 
   useEffect(() => {
-    if (status === 'loading') return;
+    if (status === "loading") return;
 
     if (!session) {
-      router.push('/auth/admin-login');
+      router.push("/auth/admin-login");
       return;
     }
 
     const userRole = (session.user as any)?.role;
-    if (userRole !== 'admin' && userRole !== 'super-admin') {
-      router.push('/');
+    if (userRole !== "admin" && userRole !== "super-admin") {
+      router.push("/");
       return;
     }
 
@@ -40,10 +40,14 @@ export default function CategoriesAndUnitsPage() {
 
   return (
     <AdminLayout>
-      <div className="max-w-7xl mx-auto px-6 py-8">
+      <div className=" mx-auto px-6 py-8">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">Categories & Units</h1>
-          <p className="text-gray-600 mt-2">Manage product categories and measurement units</p>
+          <h1 className="text-3xl font-bold text-gray-900">
+            Categories & Units
+          </h1>
+          <p className="text-gray-600 mt-2">
+            Manage product categories and measurement units
+          </p>
         </div>
 
         <Tabs defaultValue="categories" className="w-full">
