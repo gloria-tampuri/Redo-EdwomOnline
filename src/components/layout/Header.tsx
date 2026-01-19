@@ -1,13 +1,22 @@
-import React, { useState } from 'react';
-import Link from 'next/link';
-import { useAuth } from '@/hooks/useAuth';
-import { useCart } from '@/context/CartContext';
-import { Logo } from '../ui/logo';
-import { ShoppingCart } from 'lucide-react';
+import React, { useState } from "react";
+import Link from "next/link";
+import { useAuth } from "@/hooks/useAuth";
+import { useCart } from "@/context/CartContext";
+import { Logo } from "../ui/logo";
+import { ShoppingCart } from "lucide-react";
 
 export function Header() {
   const { user, isAuthenticated, isAdmin, signOut } = useAuth();
-  const { state: cartState } = useCart();
+  let cartState = { totalItems: 0 };
+
+  try {
+    const { state } = useCart();
+    cartState = state;
+  } catch (error) {
+    // CartProvider might not be available in some contexts
+    console.debug("CartProvider not available:", error);
+  }
+
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   return (
@@ -18,7 +27,6 @@ export function Header() {
 
         {/* Desktop Navigation */}
         <div className="hidden md:flex items-center gap-8">
-         
           {/* Cart Icon */}
           <Link
             href="/checkout"
@@ -45,10 +53,13 @@ export function Header() {
               )}
               <div className="flex items-center gap-2">
                 <div className="w-8 h-8 rounded-full bg-[#556B2F] text-white flex items-center justify-center font-bold">
-                  {user.name?.charAt(0).toUpperCase() || user.email.charAt(0).toUpperCase()}
+                  {user.name?.charAt(0).toUpperCase() ||
+                    user.email.charAt(0).toUpperCase()}
                 </div>
                 <div className="text-sm">
-                  <p className="font-medium text-gray-900">{user.name || user.email}</p>
+                  <p className="font-medium text-gray-900">
+                    {user.name || user.email}
+                  </p>
                   <p className="text-xs text-gray-500">{user.role}</p>
                 </div>
               </div>
@@ -75,7 +86,6 @@ export function Header() {
               </Link>
             </div>
           )}
-          
         </div>
 
         {/* Mobile Menu Button & Cart */}
@@ -112,18 +122,30 @@ export function Header() {
         </div>
       </nav>
       <div className="hidden md:flex justify-center gap-8 py-2 mb-4">
-         <Link href="/" className="text-gray-600 hover:text-gray-900 transition font-medium">
-            Home
-          </Link>
-         <Link href="/" className="text-gray-600 hover:text-gray-900 transition font-medium">
-            Products
-          </Link>
-          <Link href="/" className="text-gray-600 hover:text-gray-900 transition font-medium">
-            Meal Packages
-          </Link>
-          <Link href="/" className="text-gray-600 hover:text-gray-900 transition font-medium">
-            Custom Shopping Cart
-          </Link>
+        <Link
+          href="/"
+          className="text-gray-600 hover:text-gray-900 transition font-medium"
+        >
+          Home
+        </Link>
+        <Link
+          href="/"
+          className="text-gray-600 hover:text-gray-900 transition font-medium"
+        >
+          Products
+        </Link>
+        <Link
+          href="/"
+          className="text-gray-600 hover:text-gray-900 transition font-medium"
+        >
+          Meal Packages
+        </Link>
+        <Link
+          href="/"
+          className="text-gray-600 hover:text-gray-900 transition font-medium"
+        >
+          Custom Shopping Cart
+        </Link>
       </div>
 
       {/* Mobile Menu */}

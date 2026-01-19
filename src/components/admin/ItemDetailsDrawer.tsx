@@ -26,7 +26,7 @@ import { useUnits } from '@/hooks/useUnits';
 interface Item {
   _id?: string;
   name: string;
-  category: string;
+  category: string | { _id: string; name: string };
   description?: string;
   price: number;
   unit: string;

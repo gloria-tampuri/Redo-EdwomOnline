@@ -34,19 +34,24 @@ export interface Package {
 
 export interface Order {
   _id?: string; // MongoDB ID (optional for new orders during creation)
-  orderId: string; // Human-readable order ID (ORD-XXXXX-XXXXX)
-  customer: {
-    name: string;
-    phone: string;
-    email: string;
-    address: string;
+  orderId?: string; // Human-readable order ID (ORD-XXXXX-XXXXX) - optional since user orders don't have this yet
+  customer?: {
+    name?: string;
+    phone?: string;
+    email?: string;
+    address?: string;
   };
   items: OrderItem[]; // Array of order items (both inventory items and packages) with _id
-  totalAmount: number;
-  deliveryLocation: string;
+  totalAmount?: number;
+  subtotal?: number; // From user checkout
+  total?: number; // From user checkout
+  deliveryLocation?: string;
+  deliveryDate?: Date | string;
+  deliveryTime?: string;
+  deliveryInstructions?: string;
   status: string; // e.g., 'Pending', 'Processing', 'Completed', 'Cancelled'
-  orderDate: string; // ISO date string
-  paymentStatus: string; // e.g., 'Unpaid', 'Paid', 'Refunded'
+  orderDate?: string; // ISO date string
+  paymentStatus?: string; // e.g., 'Unpaid', 'Paid', 'Refunded'
   discount?: number;
   deliveryFee?: number;
   tax?: number;
