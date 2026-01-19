@@ -18,16 +18,7 @@ export function Header() {
 
         {/* Desktop Navigation */}
         <div className="hidden md:flex items-center gap-8">
-          <Link href="/" className="text-gray-600 hover:text-gray-900 transition font-medium">
-            Shop
-          </Link>
-          <Link href="/" className="text-gray-600 hover:text-gray-900 transition font-medium">
-            Packages
-          </Link>
-          <Link href="/" className="text-gray-600 hover:text-gray-900 transition font-medium">
-            About
-          </Link>
-
+         
           {/* Cart Icon */}
           <Link
             href="/checkout"
@@ -84,6 +75,7 @@ export function Header() {
               </Link>
             </div>
           )}
+          
         </div>
 
         {/* Mobile Menu Button & Cart */}
@@ -119,6 +111,20 @@ export function Header() {
           </button>
         </div>
       </nav>
+      <div className="hidden md:flex justify-center gap-8 py-2 mb-4">
+         <Link href="/" className="text-gray-600 hover:text-gray-900 transition font-medium">
+            Home
+          </Link>
+         <Link href="/" className="text-gray-600 hover:text-gray-900 transition font-medium">
+            Products
+          </Link>
+          <Link href="/" className="text-gray-600 hover:text-gray-900 transition font-medium">
+            Meal Packages
+          </Link>
+          <Link href="/" className="text-gray-600 hover:text-gray-900 transition font-medium">
+            Custom Shopping Cart
+          </Link>
+      </div>
 
       {/* Mobile Menu */}
       {isMenuOpen && (

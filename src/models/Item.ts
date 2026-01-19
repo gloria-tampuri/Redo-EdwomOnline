@@ -1,4 +1,4 @@
-import mongoose, { Document, Schema, Types } from 'mongoose';
+import mongoose, { Document, Schema, Types } from "mongoose";
 
 interface ItemDocument extends Document {
   name: string;
@@ -8,7 +8,7 @@ interface ItemDocument extends Document {
   unit: string;
   discount?: number;
   stock: number;
-  status: 'In Stock' | 'Out of Stock' | 'Low Stock';
+  status: "In Stock" | "Out of Stock" | "Low Stock";
   image?: string; // Base64 encoded image
   lastUpdated: Date;
   createdAt: Date;
@@ -24,12 +24,12 @@ const ItemSchema = new Schema<ItemDocument>(
     },
     category: {
       type: Schema.Types.ObjectId,
-      ref: 'Category',
+      ref: "Category",
       required: true,
     },
     description: {
       type: String,
-      default: '',
+      default: "",
     },
     price: {
       type: Number,
@@ -52,12 +52,12 @@ const ItemSchema = new Schema<ItemDocument>(
     },
     status: {
       type: String,
-      enum: ['In Stock', 'Out of Stock', 'Low Stock'],
-      default: 'In Stock',
+      enum: ["In Stock", "Out of Stock", "Low Stock"],
+      default: "In Stock",
     },
     image: {
       type: String,
-      default: '',
+      default: "",
     },
     lastUpdated: {
       type: Date,
@@ -70,12 +70,13 @@ const ItemSchema = new Schema<ItemDocument>(
 );
 
 // Pre-save hook to update lastUpdated
-ItemSchema.pre<ItemDocument>('save', function (next) {
+ItemSchema.pre<ItemDocument>("save", function (next) {
   this.lastUpdated = new Date();
   next();
 });
 
-const Item = mongoose.models.Item || mongoose.model<ItemDocument>('Item', ItemSchema);
+const Item =
+  mongoose.models.Item || mongoose.model<ItemDocument>("Item", ItemSchema);
 
 export default Item;
 export type { ItemDocument };

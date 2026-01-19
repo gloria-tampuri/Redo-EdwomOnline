@@ -1,13 +1,41 @@
-'use client';
+"use client";
 
-import Link from 'next/link';
-import { useCategories } from '@/hooks/useCategories';
-import { useItems } from '@/hooks/useItems';
-import { usePackages } from '@/hooks/usePackages';
-import { ItemCard } from '@/components/products/ItemCard';
-import { CategoryCard } from '@/components/products/CategoryCard';
-import { PackageCard } from '@/components/products/PackageCard';
-import { Carousel } from '@/components/products/Carousel';
+import Link from "next/link";
+import { useCategories } from "@/hooks/useCategories";
+import { useItems } from "@/hooks/useItems";
+import { usePackages } from "@/hooks/usePackages";
+import { ItemCard } from "@/components/products/ItemCard";
+import { CategoryCard } from "@/components/products/CategoryCard";
+import { PackageCard } from "@/components/products/PackageCard";
+import { Carousel } from "@/components/products/Carousel";
+import { HeroSlider } from "@/components/products/HeroSlider";
+
+const heroSlides = [
+  {
+    image: "/assets/Hero2.jpg",
+    title: "Fresh Groceries, Delivered to Your Doorstep",
+    subtitle:
+      "Shop your local essentials from the comfort of your home and get them delivered fast.",
+    primaryCta: { text: "Start Shopping", href: "/auth/signup" },
+    secondaryCta: { text: "View Meal Packages", href: "/packages" },
+  },
+  {
+    image: "/assets/Hero1.jpg",
+    title: "Quality Products from Local Markets",
+    subtitle:
+      "We source the freshest produce and essentials from trusted local vendors.",
+    primaryCta: { text: "Explore Categories", href: "/categories" },
+    secondaryCta: { text: "Learn More", href: "/about" },
+  },
+  {
+    image: "/assets/Hero3.jpg",
+    title: "Convenient & Fast Delivery",
+    subtitle:
+      "Get your groceries delivered right to your door. Fresh, fast, and reliable.",
+    primaryCta: { text: "Order Now", href: "/auth/signup" },
+    secondaryCta: { text: "Sign In", href: "/auth/login" },
+  },
+];
 
 export default function Home() {
   const { categories, isLoading: categoriesLoading } = useCategories();
@@ -16,63 +44,37 @@ export default function Home() {
 
   // Filter active categories and items
   const activeCategories = categories; // Show all categories on landing page
-  const inStockItems = items.filter((item) => item.status !== 'Out of Stock');
-  const activePackages = packages.filter((pkg) => pkg.status === 'active');
+  const inStockItems = items.filter((item) => item.status !== "Out of Stock");
+  const activePackages = packages.filter((pkg) => pkg.status === "active");
 
-  console.log('Active categories on homepage:', activeCategories);
+  console.log("Active categories on homepage:", activeCategories);
 
   return (
     <main className="min-h-screen bg-white">
-      {/* Hero Section */}
-      <section className="relative w-full h-96 md:h-[500px] overflow-hidden bg-gradient-to-r from-[#354D1F] to-[#556B2F]">
-        <div className="absolute inset-0 opacity-20">
-          <div className="absolute inset-0 bg-black/30" />
-        </div>
-
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-full flex items-center">
-          <div className="w-full md:w-1/2">
-            <h1 className="text-4xl md:text-5xl font-bold text-white mb-4 leading-tight">
-              Fresh Groceries, Delivered to Your Doorstep
-            </h1>
-            <p className="text-lg text-gray-100 mb-8">
-              Shop your local essentials from the comfort of your home and get them delivered fast.
-            </p>
-            <div className="flex flex-col sm:flex-row gap-4">
-              <Link
-                href="/auth/signup"
-                className="px-8 py-3 rounded-lg bg-[#00CC4D] text-gray-900 font-bold hover:bg-[#00b340] transition text-center"
-              >
-                Start Shopping
-              </Link>
-              <Link
-                href="/auth/login"
-                className="px-8 py-3 rounded-lg border-2 border-white text-white font-bold hover:bg-white/10 transition text-center"
-              >
-                View Meal Packages
-              </Link>
-            </div>
-          </div>
-        </div>
-      </section>
+      {/* Hero Slider Section */}
+      <HeroSlider slides={heroSlides} autoSlideInterval={6000} />
 
       {/* Categories Section */}
       {!categoriesLoading && activeCategories.length > 0 && (
         <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 md:py-20">
-          <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-12">Categories</h2>
+          <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-12">
+            Categories
+          </h2>
 
           <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-6">
-            {activeCategories.map((category) => (
-              category._id && (
-                <CategoryCard
-                  key={category._id}
-                  _id={category._id}
-                  name={category.name}
-                  image={category.image}
-                  icon={category.icon}
-                  color={category.color}
-                />
-              )
-            ))}
+            {activeCategories.map(
+              (category) =>
+                category._id && (
+                  <CategoryCard
+                    key={category._id}
+                    _id={category._id}
+                    name={category.name}
+                    image={category.image}
+                    icon={category.icon}
+                    color={category.color}
+                  />
+                )
+            )}
           </div>
         </section>
       )}
@@ -99,7 +101,9 @@ export default function Home() {
       {!itemsLoading && inStockItems.length > 0 && (
         <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 md:py-20">
           <div className="flex justify-between items-center mb-12">
-            <h2 className="text-3xl md:text-4xl font-bold text-gray-900">Popular Groceries</h2>
+            <h2 className="text-3xl md:text-4xl font-bold text-gray-900">
+              Popular Groceries
+            </h2>
             <Link
               href="#"
               className="text-[#556B2F] font-semibold hover:text-[#4a5c2a] transition flex items-center gap-2"
@@ -130,7 +134,9 @@ export default function Home() {
       {!packagesLoading && activePackages.length > 0 && (
         <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 md:py-20">
           <div className="flex justify-between items-center mb-12">
-            <h2 className="text-3xl md:text-4xl font-bold text-gray-900">Meal Packages</h2>
+            <h2 className="text-3xl md:text-4xl font-bold text-gray-900">
+              Meal Packages
+            </h2>
             <Link
               href="#"
               className="text-[#556B2F] font-semibold hover:text-[#4a5c2a] transition flex items-center gap-2"
@@ -142,8 +148,8 @@ export default function Home() {
           <Carousel itemsPerView={4}>
             {activePackages.map((pkg) => (
               <PackageCard
-                key={pkg._id || ''}
-                _id={pkg._id || ''}
+                key={pkg._id || ""}
+                _id={pkg._id || ""}
                 name={pkg.name}
                 description={pkg.description}
                 price={pkg.price}
@@ -157,16 +163,19 @@ export default function Home() {
       )}
 
       {/* CTA Section */}
-      <section className="bg-gradient-to-r from-[#354D1F] to-[#556B2F] text-white py-16 md:py-24 my-12 md:my-20">
+      <section className=" bg-[#556B2F33] py-16 md:py-24 my-12 md:my-20">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h2 className="text-3xl md:text-4xl font-bold mb-4">Ready to Start Shopping?</h2>
-          <p className="text-lg mb-8 text-gray-100">
-            Join thousands of satisfied customers who trust us for their groceries.
+          <h2 className="text-3xl md:text-4xl font-bold mb-4">
+            Ready to Start Shopping?
+          </h2>
+          <p className="text-lg mb-8 text-[#12170AB2]">
+            Join thousands of satisfied customers who trust us for their
+            groceries.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link
               href="/auth/signup"
-              className="px-8 py-3 rounded-lg bg-[#00CC4D] text-gray-900 font-bold hover:bg-[#00b340] transition"
+              className="px-8 py-3 rounded-lg bg-primary text-white font-bold hover:bg-[#00b340] transition"
             >
               Get Started
             </Link>
@@ -177,19 +186,6 @@ export default function Home() {
               Sign In
             </Link>
           </div>
-        </div>
-      </section>
-
-      {/* Admin Access */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <div className="text-center">
-          <p className="text-gray-600 mb-4">Are you an admin?</p>
-          <Link
-            href="/auth/admin-login"
-            className="inline-block px-6 py-2 rounded-lg bg-gray-900 text-white font-semibold hover:bg-gray-800 transition"
-          >
-            Admin Login
-          </Link>
         </div>
       </section>
     </main>

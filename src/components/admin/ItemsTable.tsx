@@ -10,7 +10,7 @@ import {
   ColumnDef,
   SortingState,
   ColumnFiltersState,
-} from '@tanstack/react-table';
+} from "@tanstack/react-table";
 import {
   Search,
   Filter,
@@ -31,15 +31,20 @@ import {
 } from "@/components/ui/dropdown-menu";
 import ItemDetailsDrawer from "./ItemDetailsDrawer";
 import { useItems } from "@/hooks/useItems";
-import NoItem from '@/components/svgs/no-item';
-import { TablePagination } from './TablePagination';
-import { DeleteConfirmDialog } from './DeleteConfirmDialog';
-import { DataTable } from './DataTable';
+import NoItem from "@/components/svgs/no-item";
+import { TablePagination } from "./TablePagination";
+import { DeleteConfirmDialog } from "./DeleteConfirmDialog";
+import { DataTable } from "./DataTable";
 
 interface Item {
   _id: string;
   name: string;
-  category: string;
+  category:
+    | {
+        _id: string;
+        name: string;
+      }
+    | string;
   description?: string;
   price: number;
   unit: string;
@@ -68,9 +73,11 @@ const ItemsPage = () => {
   // Filter items based on search and status
   const filteredItems = useMemo(() => {
     return items.filter((item) => {
+      const categoryName =
+        typeof item.category === "object" ? item.category?.name : item.category;
       const matchesSearch =
         item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        item.category.toLowerCase().includes(searchTerm.toLowerCase());
+        (categoryName?.toLowerCase() || "").includes(searchTerm.toLowerCase());
 
       const matchesStatus = !statusFilter || item.status === statusFilter;
 
@@ -121,9 +128,12 @@ const ItemsPage = () => {
     {
       accessorKey: "category",
       header: "Category",
-      cell: ({ row }) => (
-        <span className="text-gray-600">{row.original.category}</span>
-      ),
+      cell: ({ row }) => {
+        const category = row.original.category;
+        const categoryName =
+          typeof category === "object" ? category?.name : category;
+        return <span className="text-gray-600">{categoryName || "-"}</span>;
+      },
     },
     {
       accessorKey: "price",
@@ -309,7 +319,12 @@ const ItemsPage = () => {
       </div>
 
       {/* Table */}
-      <DataTable table={table} columns={columns} isLoading={isLoading} emptyMessage="items" />
+      <DataTable
+        table={table}
+        columns={columns}
+        isLoading={isLoading}
+        emptyMessage="items"
+      />
 
       {/* Pagination */}
       <TablePagination table={table} totalItems={filteredItems.length} />

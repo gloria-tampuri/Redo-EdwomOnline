@@ -1,16 +1,21 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { toast } from 'sonner';
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 
 interface Item {
   _id: string;
   name: string;
-  category: string;
+  category:
+    | {
+        _id: string;
+        name: string;
+      }
+    | string;
   description?: string;
   price: number;
   unit: string;
   discount?: number;
   stock: number;
-  status: 'In Stock' | 'Out of Stock' | 'Low Stock';
+  status: "In Stock" | "Out of Stock" | "Low Stock";
   image?: string;
   lastUpdated: string;
 }
@@ -20,10 +25,10 @@ export const useItems = () => {
 
   // Fetch all items
   const { data: items = [], isLoading } = useQuery<Item[]>({
-    queryKey: ['items'],
+    queryKey: ["items"],
     queryFn: async () => {
-      const res = await fetch('/api/items');
-      if (!res.ok) throw new Error('Failed to fetch items');
+      const res = await fetch("/api/items");
+      if (!res.ok) throw new Error("Failed to fetch items");
       return res.json();
     },
     staleTime: 1000 * 60 * 5, // 5 minutes
@@ -33,26 +38,26 @@ export const useItems = () => {
   // Create item mutation
   const createItem = useMutation({
     mutationFn: async (data: Item) => {
-      const res = await fetch('/api/items', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const res = await fetch("/api/items", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),
       });
       if (!res.ok) {
         const error = await res.json();
-        throw new Error(error.error || 'Failed to create item');
+        throw new Error(error.error || "Failed to create item");
       }
       return res.json();
     },
     onSuccess: () => {
-      toast.success('Item created successfully');
-      queryClient.invalidateQueries({ 
-        queryKey: ['items'],
-        refetchType: 'active',
+      toast.success("Item created successfully");
+      queryClient.invalidateQueries({
+        queryKey: ["items"],
+        refetchType: "active",
       });
     },
     onError: (error) => {
-      toast.error(error.message || 'Failed to create item');
+      toast.error(error.message || "Failed to create item");
     },
   });
 
@@ -60,44 +65,44 @@ export const useItems = () => {
   const updateItem = useMutation({
     mutationFn: async ({ id, data }: { id: string; data: Item }) => {
       const res = await fetch(`/api/items/${id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),
       });
       if (!res.ok) {
         const error = await res.json();
-        throw new Error(error.error || 'Failed to update item');
+        throw new Error(error.error || "Failed to update item");
       }
       return res.json();
     },
     onSuccess: () => {
-      toast.success('Item updated successfully');
-      queryClient.invalidateQueries({ 
-        queryKey: ['items'],
-        refetchType: 'active',
+      toast.success("Item updated successfully");
+      queryClient.invalidateQueries({
+        queryKey: ["items"],
+        refetchType: "active",
       });
     },
     onError: (error) => {
-      toast.error(error.message || 'Failed to update item');
+      toast.error(error.message || "Failed to update item");
     },
   });
 
   // Delete item mutation
   const deleteItem = useMutation({
     mutationFn: async (id: string) => {
-      const res = await fetch(`/api/items/${id}`, { method: 'DELETE' });
-      if (!res.ok) throw new Error('Failed to delete item');
+      const res = await fetch(`/api/items/${id}`, { method: "DELETE" });
+      if (!res.ok) throw new Error("Failed to delete item");
       return res.json();
     },
     onSuccess: () => {
-      toast.success('Item deleted successfully');
-      queryClient.invalidateQueries({ 
-        queryKey: ['items'],
-        refetchType: 'active',
+      toast.success("Item deleted successfully");
+      queryClient.invalidateQueries({
+        queryKey: ["items"],
+        refetchType: "active",
       });
     },
     onError: (error) => {
-      toast.error(error.message || 'Failed to delete item');
+      toast.error(error.message || "Failed to delete item");
     },
   });
 
