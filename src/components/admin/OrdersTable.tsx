@@ -66,9 +66,13 @@ const OrdersPage = () => {
       // Search across multiple fields
       const matchesSearch =
         order.orderId?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        order.customer?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        order.customer?.name
+          ?.toLowerCase()
+          .includes(searchTerm.toLowerCase()) ||
         order.customer?.phone?.includes(searchTerm) ||
-        order.customer?.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        order.customer?.email
+          ?.toLowerCase()
+          .includes(searchTerm.toLowerCase()) ||
         false;
 
       const matchesStatus = !statusFilter || order.status === statusFilter;

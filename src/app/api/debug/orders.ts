@@ -5,11 +5,11 @@ import dbConnect from "@/lib/mongodb";
 export async function GET() {
   try {
     await dbConnect();
-    
+
     // Get all orders with full details
     const orders = await Order.find().lean();
     const count = await Order.countDocuments();
-    
+
     return NextResponse.json({
       success: true,
       totalOrders: count,
@@ -28,7 +28,7 @@ export async function GET() {
         success: false,
         error: error instanceof Error ? error.message : "Unknown error",
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

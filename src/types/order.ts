@@ -10,7 +10,7 @@ export interface OrderItem {
   quantity: number;
   unit: string;
   image?: string;
-  type?: 'item' | 'package'; // Distinguish between inventory items and packages
+  type?: "item" | "package"; // Distinguish between inventory items and packages
 }
 
 export interface Package {
@@ -27,7 +27,7 @@ export interface Package {
   }>;
   price: number; // Total price of all items
   discount: number; // Package discount
-  status: 'active' | 'inactive';
+  status: "active" | "inactive";
   youtubeUrl?: string;
   image?: string;
 }
