@@ -70,13 +70,13 @@ const ItemsPage = () => {
 
   const { items, isLoading, deleteItem } = useItems();
 
-  // Normalize item data for the drawer (convert nested objects to IDs)
+  // Normalize item data for the drawer (convert nested objects to IDs/names)
   const normalizeItem = (item: Item): Item => {
     return {
       ...item,
       category:
         typeof item.category === "object" ? item.category._id : item.category,
-      unit: typeof item.unit === "object" ? (item.unit as any)._id : item.unit,
+      unit: typeof item.unit === "object" ? (item.unit as any).name : item.unit,
     };
   };
 

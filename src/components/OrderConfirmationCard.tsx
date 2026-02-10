@@ -1,9 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useParams } from "next/navigation";
 import Link from "next/link";
-import { CheckCircle, Package, Clock } from "lucide-react";
+import { CheckCircle, Clock } from "lucide-react";
 
 interface OrderItem {
   itemId: string;
@@ -14,69 +12,35 @@ interface OrderItem {
   type: "item" | "package";
 }
 
-interface Order {
-  _id: string;
-  items: OrderItem[];
-  subtotal: number;
-  shipping: number;
-  tax: number;
-  total: number;
-  notes?: string;
-  status: string;
-  createdAt: string;
-  deliveryEstimate?: string;
+interface OrderConfirmationCardProps {
+  order: {
+    _id: string;
+    orderId?: string;
+    items: OrderItem[];
+    subtotal: number;
+    shipping: number;
+    tax: number;
+    total: number;
+    notes?: string;
+    status: string;
+    createdAt: string;
+    deliveryEstimate?: string;
+    customer?: {
+      name?: string;
+      phone?: string;
+      email?: string;
+      address?: string;
+    };
+    deliveryLocation?: string;
+    deliveryInstructions?: string;
+    deliveryTime?: string;
+    deliveryDate?: string;
+  };
 }
 
-export default function OrderConfirmationPage() {
-  const params = useParams();
-  const orderId = params.orderId as string;
-  const [order, setOrder] = useState<Order | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    const fetchOrder = async () => {
-      try {
-        const response = await fetch(`/api/orders/${orderId}`);
-        if (!response.ok) {
-          throw new Error("Failed to fetch order details");
-        }
-        const data = await response.json();
-        setOrder(data);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "An error occurred");
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchOrder();
-  }, [orderId]);
-
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <p className="text-gray-600">Loading order details...</p>
-      </div>
-    );
-  }
-
-  if (error || !order) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <p className="text-red-600 mb-4">{error || "Order not found"}</p>
-          <Link
-            href="/"
-            className="text-[#556B2F] hover:text-[#4a5c2a] font-semibold"
-          >
-            Back to Home
-          </Link>
-        </div>
-      </div>
-    );
-  }
-
+export default function OrderConfirmationCard({
+  order,
+}: OrderConfirmationCardProps) {
   return (
     <main className="min-h-screen bg-gray-50">
       {/* Success Header */}
@@ -85,11 +49,11 @@ export default function OrderConfirmationPage() {
           <div className="inline-flex items-center justify-center w-16 h-16 bg-[#00CC4D] rounded-full mb-6">
             <CheckCircle size={32} className="text-white" />
           </div>
-          <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-2">
-            Order Confirmed!
+          <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
+            All set!
           </h1>
           <p className="text-gray-600 text-lg">
-            Thank you for your order. We're preparing it now.
+            Your groceries are being prepared and our team will reach out soon.
           </p>
         </div>
       </div>
@@ -102,7 +66,7 @@ export default function OrderConfirmationPage() {
             <div>
               <p className="text-sm text-gray-600 mb-1">Order Number</p>
               <p className="text-xl font-bold text-gray-900">
-                #{order._id.slice(-8).toUpperCase()}
+                #{order.orderId || order._id.slice(-8).toUpperCase()}
               </p>
             </div>
             <div>
@@ -120,37 +84,6 @@ export default function OrderConfirmationPage() {
                 </span>
               </div>
             </div>
-          </div>
-        </div>
-
-        {/* Order Items */}
-        <div className="bg-white rounded-lg shadow-sm p-6 mb-8">
-          <h2 className="text-xl font-bold text-gray-900 mb-6">Order Items</h2>
-          <div className="space-y-4">
-            {order.items.map((item, idx) => (
-              <div
-                key={idx}
-                className="flex justify-between items-center py-4 border-b border-gray-200 last:border-b-0"
-              >
-                <div className="flex items-center gap-4 flex-1">
-                  <Package size={24} className="text-gray-400" />
-                  <div>
-                    <p className="font-semibold text-gray-900">{item.name}</p>
-                    <p className="text-sm text-gray-500">
-                      {item.quantity} {item.unit}
-                    </p>
-                  </div>
-                </div>
-                <div className="text-right">
-                  <p className="font-semibold text-gray-900">
-                    GHS {(item.price * item.quantity).toFixed(2)}
-                  </p>
-                  <p className="text-sm text-gray-500">
-                    {item.quantity} × GHS {item.price.toFixed(2)}
-                  </p>
-                </div>
-              </div>
-            ))}
           </div>
         </div>
 
@@ -175,13 +108,89 @@ export default function OrderConfirmationPage() {
           </div>
         </div>
 
+        {/* Customer Information */}
+        {order.customer && (
+          <div className="bg-white rounded-lg shadow-sm p-6 mb-8">
+            <h2 className="text-xl font-bold text-gray-900 mb-6">
+              Delivery Address
+            </h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <p className="text-sm text-gray-600 mb-1">Full Name</p>
+                <p className="text-gray-900 font-medium">
+                  {order.customer.name || "—"}
+                </p>
+              </div>
+              <div>
+                <p className="text-sm text-gray-600 mb-1">Phone Number</p>
+                <p className="text-gray-900 font-medium">
+                  {order.customer.phone || "—"}
+                </p>
+              </div>
+              <div>
+                <p className="text-sm text-gray-600 mb-1">Email</p>
+                <p className="text-gray-900 font-medium">
+                  {order.customer.email || "—"}
+                </p>
+              </div>
+              <div>
+                <p className="text-sm text-gray-600 mb-1">Address</p>
+                <p className="text-gray-900 font-medium">
+                  {order.customer.address || "—"}
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Delivery Instructions */}
+        {(order.deliveryTime ||
+          order.deliveryInstructions ||
+          order.deliveryDate) && (
+          <div className="bg-white rounded-lg shadow-sm p-6 mb-8">
+            <h2 className="text-xl font-bold text-gray-900 mb-6">
+              Delivery Instructions
+            </h2>
+            <div className="space-y-4">
+              {order.deliveryTime && (
+                <div>
+                  <p className="text-sm text-gray-600 mb-1">
+                    Preferred Delivery Time
+                  </p>
+                  <p className="text-gray-900 font-medium">
+                    {order.deliveryTime}
+                  </p>
+                </div>
+              )}
+              {order.deliveryDate && (
+                <div>
+                  <p className="text-sm text-gray-600 mb-1">Delivery Date</p>
+                  <p className="text-gray-900 font-medium">
+                    {new Date(order.deliveryDate).toLocaleDateString()}
+                  </p>
+                </div>
+              )}
+              {order.deliveryInstructions && (
+                <div>
+                  <p className="text-sm text-gray-600 mb-1">
+                    Special Instructions
+                  </p>
+                  <p className="text-gray-900 font-medium">
+                    {order.deliveryInstructions}
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
         {/* Delivery Information */}
         <div className="bg-[#E8F5E9] border-l-4 border-[#00CC4D] rounded-lg p-6 mb-8">
           <h3 className="font-bold text-gray-900 mb-2">Delivery Details</h3>
           <p className="text-gray-700">
             Our team will contact you shortly with delivery details and an
-            estimated delivery time. Please ensure your phone number is correct
-            and that you're available to receive the call.
+            estimated delivery fee and time. Please ensure your phone number is
+            correct and that you're available to receive the call.
           </p>
         </div>
 
@@ -223,7 +232,7 @@ export default function OrderConfirmationPage() {
             href="/orders"
             className="flex-1 border-2 border-[#556B2F] text-[#556B2F] hover:bg-[#F1F5F9] font-semibold py-3 px-6 rounded-lg transition-colors duration-200 text-center"
           >
-            View All Orders
+            View Order History
           </Link>
         </div>
       </div>

@@ -1,10 +1,10 @@
-'use client';
+"use client";
 
 import React, { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { signIn } from "next-auth/react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Eye, EyeOff } from "lucide-react";
 import { loginSchema, type LoginFormData } from "@/app/types/schemas";
 import { Button } from "@/components/ui/button";
@@ -19,6 +19,8 @@ interface LoginFormProps {
 
 export function LoginForm({ isAdmin = false }: LoginFormProps) {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const callbackUrl = searchParams.get("callbackUrl");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string>("");
   const [showPassword, setShowPassword] = useState(false);
@@ -49,11 +51,13 @@ export function LoginForm({ isAdmin = false }: LoginFormProps) {
       }
 
       // Fetch user role from database by email
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      const userRes = await fetch(`/api/user-role?email=${encodeURIComponent(data.email)}`);
+      await new Promise((resolve) => setTimeout(resolve, 500));
+
+      const userRes = await fetch(
+        `/api/user-role?email=${encodeURIComponent(data.email)}`,
+      );
       const userData = await userRes.json();
-      
+
       console.log("User data from API:", userData);
 
       if (!userRes.ok) {
@@ -66,9 +70,9 @@ export function LoginForm({ isAdmin = false }: LoginFormProps) {
       const userRole = userData.role;
       console.log("User role:", userRole);
 
-      // Determine redirect URL based on role
+      // Determine redirect URL based on role and callback
       let redirectUrl = "/";
-      
+
       if (isAdmin) {
         if (userRole !== "admin" && userRole !== "super-admin") {
           setError("Admin access required. Please contact your administrator.");
@@ -76,11 +80,22 @@ export function LoginForm({ isAdmin = false }: LoginFormProps) {
           return;
         }
         redirectUrl = "/admin/dashboard";
-        console.log("Admin/Super-admin accessing admin form, redirecting to:", redirectUrl);
+        console.log(
+          "Admin/Super-admin accessing admin form, redirecting to:",
+          redirectUrl,
+        );
       } else {
-        if (userRole === "super-admin" || userRole === "admin") {
+        // For regular login, check callback URL first
+        if (callbackUrl) {
+          // If user has admin role but is on regular login with callback, respect the callback
+          redirectUrl = callbackUrl;
+          console.log("Using callback URL:", redirectUrl);
+        } else if (userRole === "super-admin" || userRole === "admin") {
           redirectUrl = "/admin/dashboard";
-          console.log("Admin/Super-admin accessing regular form, redirecting to:", redirectUrl);
+          console.log(
+            "Admin/Super-admin accessing regular form, redirecting to:",
+            redirectUrl,
+          );
         } else {
           redirectUrl = "/";
           console.log("Regular user, redirecting to:", redirectUrl);
@@ -134,7 +149,9 @@ export function LoginForm({ isAdmin = false }: LoginFormProps) {
       <div className="text-center">
         <Logo href="/" />
       </div>
-            <h2 className="text-[32px] font-bold text-card-foreground text-center">Login</h2>
+      <h2 className="text-[32px] font-bold text-card-foreground text-center">
+        Login
+      </h2>
 
       {/* Form Title */}
       <div className="text-center">
@@ -198,11 +215,7 @@ export function LoginForm({ isAdmin = false }: LoginFormProps) {
               className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 transition-colors"
               tabIndex={-1}
             >
-              {showPassword ? (
-                <EyeOff size={20} />
-              ) : (
-                <Eye size={20} />
-              )}
+              {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
             </button>
           </div>
           {errors.password && (

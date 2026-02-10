@@ -1,5 +1,5 @@
-import Order, { OrderDocument, OrderItem } from '@/models/Order';
-import dbConnect from '@/lib/mongodb';
+import Order, { OrderDocument, OrderItem } from "@/models/Order";
+import dbConnect from "@/lib/mongodb";
 
 export async function createOrder(data: Partial<OrderDocument>) {
   await dbConnect();
@@ -11,6 +11,11 @@ export async function createOrder(data: Partial<OrderDocument>) {
 export async function getOrders() {
   await dbConnect();
   return Order.find().sort({ orderDate: -1 });
+}
+
+export async function getOrdersByCustomerEmail(email: string) {
+  await dbConnect();
+  return Order.find({ "customer.email": email }).sort({ orderDate: -1 });
 }
 
 export async function getOrderById(id: string) {

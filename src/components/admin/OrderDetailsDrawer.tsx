@@ -57,7 +57,7 @@ const OrderDetailsDrawer = ({
       discount: 0,
       deliveryFee: 0,
       tax: 0,
-    }
+    },
   );
 
   const { createOrder, updateOrder } = useOrders();
@@ -99,7 +99,7 @@ const OrderDetailsDrawer = ({
       return (
         item.name.toLowerCase().includes(itemSearchInput.toLowerCase()) ||
         (categoryName?.toLowerCase() || "").includes(
-          itemSearchInput.toLowerCase()
+          itemSearchInput.toLowerCase(),
         )
       );
     });
@@ -112,7 +112,7 @@ const OrderDetailsDrawer = ({
     return availablePackages.filter(
       (pkg) =>
         pkg.status === "active" &&
-        pkg.name.toLowerCase().includes(itemSearchInput.toLowerCase())
+        pkg.name.toLowerCase().includes(itemSearchInput.toLowerCase()),
     );
   }, [availablePackages, itemSearchInput]);
 
@@ -126,7 +126,17 @@ const OrderDetailsDrawer = ({
   useEffect(() => {
     if (isOpen) {
       if (order) {
-        setFormData(order);
+        // Ensure customer object exists with all required fields
+        const normalizedOrder = {
+          ...order,
+          customer: {
+            name: order.customer?.name || "",
+            phone: order.customer?.phone || "",
+            email: order.customer?.email || "",
+            address: order.customer?.address || "",
+          },
+        } as Order;
+        setFormData(normalizedOrder);
         setMode(initialMode);
       } else {
         setMode("create");
@@ -153,7 +163,16 @@ const OrderDetailsDrawer = ({
       const field = name.split(".")[1];
       setFormData({
         ...formData,
-        customer: { ...formData.customer, [field]: value },
+        customer: {
+          ...{
+            name: "",
+            phone: "",
+            email: "",
+            address: "",
+          },
+          ...formData.customer,
+          [field]: value,
+        },
       });
     } else {
       setFormData({ ...formData, [name]: value });
@@ -172,7 +191,7 @@ const OrderDetailsDrawer = ({
     // Recalculate total when items change
     const itemsTotal = newItems.reduce(
       (sum, item) => sum + item.price * item.quantity,
-      0
+      0,
     );
     const total =
       itemsTotal -
@@ -187,7 +206,7 @@ const OrderDetailsDrawer = ({
     // Recalculate total when items are removed
     const itemsTotal = updatedItems.reduce(
       (sum, item) => sum + item.price * item.quantity,
-      0
+      0,
     );
     const total =
       itemsTotal -
@@ -207,7 +226,7 @@ const OrderDetailsDrawer = ({
       // Calculate total amount
       const itemsTotal = formData.items.reduce(
         (sum, item) => sum + item.price * item.quantity,
-        0
+        0,
       );
       const total =
         itemsTotal -
@@ -236,7 +255,7 @@ const OrderDetailsDrawer = ({
 
   const subtotal = formData.items.reduce(
     (sum, item) => sum + item.price * item.quantity,
-    0
+    0,
   );
   const discount = formData.discount || 0;
   const deliveryFee = formData.deliveryFee || 0;
@@ -251,8 +270,8 @@ const OrderDetailsDrawer = ({
             {mode === "create"
               ? "Add Order"
               : mode === "edit"
-              ? "Edit Order"
-              : "Order Details"}
+                ? "Edit Order"
+                : "Order Details"}
           </DrawerTitle>
         </DrawerHeader>
 
@@ -423,25 +442,25 @@ const OrderDetailsDrawer = ({
                   <div>
                     <p className="text-sm text-[#170A11B2]">Name</p>
                     <p className="text-xs font-medium text-gray-900">
-                      {formData.customer.name}
+                      {formData.customer?.name || "-"}
                     </p>
                   </div>
                   <div>
                     <p className="text-sm text-[#170A11B2]">Phone</p>
                     <p className="text-xs font-medium text-gray-900">
-                      {formData.customer.phone || "-"}
+                      {formData.customer?.phone || "-"}
                     </p>
                   </div>
                   <div>
                     <p className="text-sm text-[#170A11B2]">Email</p>
                     <p className="text-xs font-medium text-gray-900">
-                      {formData.customer.email || "-"}
+                      {formData.customer?.email || "-"}
                     </p>
                   </div>
                   <div>
                     <p className="text-sm text-[#170A11B2]">Address</p>
                     <p className="text-xs font-medium text-gray-900">
-                      {formData.customer.address || "-"}
+                      {formData.customer?.address || "-"}
                     </p>
                   </div>
                 </>
@@ -538,7 +557,7 @@ const OrderDetailsDrawer = ({
                               onClick={() => {
                                 // Check if item already exists
                                 const existingIndex = formData.items.findIndex(
-                                  (i) => i._id === invItem._id
+                                  (i) => i._id === invItem._id,
                                 );
                                 if (existingIndex === -1) {
                                   // Add new item
@@ -558,7 +577,7 @@ const OrderDetailsDrawer = ({
                                   const itemsTotal = newItems.reduce(
                                     (sum, item) =>
                                       sum + item.price * item.quantity,
-                                    0
+                                    0,
                                   );
                                   const total =
                                     itemsTotal -
@@ -607,13 +626,13 @@ const OrderDetailsDrawer = ({
                             onClick={() => {
                               // Check if package already exists
                               const existingIndex = formData.items.findIndex(
-                                (i) => i._id === pkg._id
+                                (i) => i._id === pkg._id,
                               );
                               if (existingIndex === -1) {
                                 // Add new package
                                 const packagePrice = Math.max(
                                   0,
-                                  pkg.price - pkg.discount
+                                  pkg.price - pkg.discount,
                                 );
                                 const newItems = [
                                   ...formData.items,
@@ -631,7 +650,7 @@ const OrderDetailsDrawer = ({
                                 const itemsTotal = newItems.reduce(
                                   (sum, item) =>
                                     sum + item.price * item.quantity,
-                                  0
+                                  0,
                                 );
                                 const total =
                                   itemsTotal -
@@ -747,7 +766,7 @@ const OrderDetailsDrawer = ({
                                 handleItemChange(
                                   idx,
                                   "quantity",
-                                  Math.max(1, value)
+                                  Math.max(1, value),
                                 );
                               }}
                               min="1"
@@ -814,7 +833,7 @@ const OrderDetailsDrawer = ({
                       const newDiscount = parseFloat(e.target.value) || 0;
                       const itemsTotal = formData.items.reduce(
                         (sum, item) => sum + item.price * item.quantity,
-                        0
+                        0,
                       );
                       const total =
                         itemsTotal -
@@ -847,7 +866,7 @@ const OrderDetailsDrawer = ({
                       const newFee = parseFloat(e.target.value) || 0;
                       const itemsTotal = formData.items.reduce(
                         (sum, item) => sum + item.price * item.quantity,
-                        0
+                        0,
                       );
                       const total =
                         itemsTotal -
@@ -880,7 +899,7 @@ const OrderDetailsDrawer = ({
                       const newTax = parseFloat(e.target.value) || 0;
                       const itemsTotal = formData.items.reduce(
                         (sum, item) => sum + item.price * item.quantity,
-                        0
+                        0,
                       );
                       const total =
                         itemsTotal -

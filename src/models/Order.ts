@@ -21,6 +21,8 @@ export interface OrderDocument extends Document {
   subtotal?: number;
   total?: number;
   deliveryLocation?: string;
+  deliveryInstructions?: string;
+  deliveryTime?: string;
   status: string;
   orderDate?: Date;
   paymentStatus?: string;
@@ -48,7 +50,7 @@ const CustomerSchema = new Schema(
     email: { type: String, required: false },
     address: { type: String, required: false },
   },
-  { _id: false, required: false }
+  { _id: false, required: false },
 );
 
 const OrderSchema = new Schema<OrderDocument>(
@@ -60,6 +62,8 @@ const OrderSchema = new Schema<OrderDocument>(
     subtotal: { type: Number, required: false },
     total: { type: Number, required: false },
     deliveryLocation: { type: String, required: false },
+    deliveryInstructions: { type: String, required: false },
+    deliveryTime: { type: String, required: false },
     status: { type: String, default: "pending", required: true },
     orderDate: { type: Date, default: Date.now },
     paymentStatus: { type: String, required: false },
@@ -69,7 +73,7 @@ const OrderSchema = new Schema<OrderDocument>(
     deliveryFee: { type: Number },
     tax: { type: Number },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 export default mongoose.models.Order ||

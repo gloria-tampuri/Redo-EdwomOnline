@@ -33,9 +33,7 @@ export default function CategoryPage() {
       try {
         setIsLoading(true);
         console.log("Fetching items for categoryId:", categoryId);
-        const response = await fetch(
-          `/api/items/by-category?categoryId=${categoryId}`
-        );
+        const response = await fetch(`/api/items?categoryId=${categoryId}`);
 
         if (!response.ok) {
           throw new Error("Failed to fetch items");
@@ -43,11 +41,17 @@ export default function CategoryPage() {
 
         const data = await response.json();
         console.log("Fetched data:", data);
-        setItems(data.items);
+        // The API returns an array directly, not an object with items property
+        const items = Array.isArray(data) ? data : data.items || [];
+        setItems(items);
 
         // Set category name from first item if available
-        if (data.items.length > 0 && data.items[0].category) {
-          setCategoryName(data.items[0].category.name);
+        if (items.length > 0 && items[0].category) {
+          setCategoryName(
+            typeof items[0].category === "object"
+              ? items[0].category.name
+              : items[0].category,
+          );
         }
       } catch (err) {
         console.error("Error fetching category items:", err);

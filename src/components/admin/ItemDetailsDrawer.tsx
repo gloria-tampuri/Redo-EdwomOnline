@@ -275,8 +275,16 @@ const ItemDetailsDrawer = ({
                 <label className="text-sm text-gray-600 block mb-1">Unit</label>
                 {isEditing ? (
                   <Select
-                    value={formData.unit}
-                    onValueChange={(value) => handleSelectChange("unit", value)}
+                    value={
+                      // Find unit ID from name for the select value
+                      units.find((u) => u.name === formData.unit)?._id ||
+                      formData.unit
+                    }
+                    onValueChange={(value) => {
+                      // Find the unit by ID and store the name instead
+                      const selectedUnit = units.find((u) => u._id === value);
+                      handleSelectChange("unit", selectedUnit?.name || value);
+                    }}
                   >
                     <SelectTrigger className="bg-white w-full">
                       <SelectValue placeholder="Select a unit" />

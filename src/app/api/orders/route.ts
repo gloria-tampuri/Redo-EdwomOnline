@@ -23,24 +23,26 @@ const SimplifiedOrderSchema = z.object({
 
 // Delivery details format from delivery page
 const DeliveryOrderSchema = z.object({
-  items: z.array(
-    z.object({
-      itemId: z.string(),
-      name: z.string(),
-      quantity: z.number(),
-      price: z.number(),
-      unit: z.string(),
-      type: z.string().optional(),
-    }),
-  ),
-  subtotal: z.number(),
-  total: z.number(),
+  items: z
+    .array(
+      z.object({
+        itemId: z.string(),
+        name: z.string().min(1, "Item name is required"),
+        quantity: z.number().positive("Quantity must be positive"),
+        price: z.number().positive("Price must be positive"),
+        unit: z.string().min(1, "Unit is required"),
+        type: z.string().optional(),
+      }),
+    )
+    .min(1, "At least one item is required"),
+  subtotal: z.number().positive("Subtotal must be positive"),
+  total: z.number().positive("Total must be positive"),
   status: z.string(),
   customer: z.object({
-    name: z.string(),
-    email: z.string().optional(),
-    phone: z.string().optional(),
-    address: z.string().optional(),
+    name: z.string().min(1, "Customer name is required"),
+    email: z.string().email("Invalid email").optional().or(z.literal("")),
+    phone: z.string().min(1, "Phone number is required"),
+    address: z.string().min(1, "Address is required"),
   }),
   deliveryLocation: z.string().optional(),
   deliveryDate: z.string().optional(),
@@ -93,7 +95,63 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
 
-    // Try simplified format first (from checkout)
+    // Try delivery details format FIRST (from delivery page with customer info)
+    const deliveryParsed = DeliveryOrderSchema.safeParse(body);
+    if (deliveryParsed.success) {
+      try {
+        const data = deliveryParsed.data;
+        console.log("Delivery order data received:", data); // Debug log
+        const orderData: Partial<OrderDocument> = {
+          orderId: generateOrderId(), // Generate orderId for user orders
+          items: data.items.map((item) => ({
+            name: item.name,
+            price: item.price,
+            quantity: item.quantity,
+            unit: item.unit,
+          })),
+          status: data.status,
+          subtotal: data.subtotal,
+          total: data.total,
+          totalAmount: data.total, // Use total as totalAmount for consistency
+          customer: {
+            name: data.customer.name || "",
+            phone: data.customer.phone || "",
+            email: data.customer.email || "",
+            address: data.customer.address || "",
+          },
+          deliveryLocation: data.deliveryLocation,
+          deliveryInstructions: data.deliveryInstructions,
+          deliveryTime: data.deliveryTime,
+          deliveryFee: 0,
+          tax: 0,
+        };
+
+        console.log("Order data to save:", orderData); // Debug log
+
+        // Convert deliveryDate to Date if provided
+        if (data.deliveryDate) {
+          const dateObj = new Date(data.deliveryDate);
+          if (!isNaN(dateObj.getTime())) {
+            orderData.deliveryDate = dateObj;
+          }
+        }
+
+        const order = await createOrder(orderData);
+        console.log("Order saved:", order); // Debug log
+        return NextResponse.json(order, { status: 201 });
+      } catch (error) {
+        console.error("Delivery order creation error:", error);
+        return NextResponse.json(
+          {
+            error: "Failed to create order",
+            details: error instanceof Error ? error.message : "Unknown error",
+          },
+          { status: 500 },
+        );
+      }
+    }
+
+    // Try simplified format second (from checkout without customer details)
     const simplifiedParsed = SimplifiedOrderSchema.safeParse(body);
     if (simplifiedParsed.success) {
       try {
@@ -118,56 +176,6 @@ export async function POST(req: NextRequest) {
         return NextResponse.json(order, { status: 201 });
       } catch (error) {
         console.error("Simplified order creation error:", error);
-        return NextResponse.json(
-          {
-            error: "Failed to create order",
-            details: error instanceof Error ? error.message : "Unknown error",
-          },
-          { status: 500 },
-        );
-      }
-    }
-
-    // Try delivery details format (from delivery page)
-    const deliveryParsed = DeliveryOrderSchema.safeParse(body);
-    if (deliveryParsed.success) {
-      try {
-        const data = deliveryParsed.data;
-        const orderData: Partial<OrderDocument> = {
-          orderId: generateOrderId(), // Generate orderId for user orders
-          items: data.items.map((item) => ({
-            name: item.name,
-            price: item.price,
-            quantity: item.quantity,
-            unit: item.unit,
-          })),
-          status: data.status,
-          subtotal: data.subtotal,
-          total: data.total,
-          totalAmount: data.total, // Use total as totalAmount for consistency
-          customer: {
-            name: data.customer.name,
-            phone: data.customer.phone ?? "",
-            email: data.customer.email ?? "",
-            address: data.customer.address ?? "",
-          },
-          deliveryLocation: data.deliveryLocation,
-          deliveryFee: 0,
-          tax: 0,
-        };
-
-        // Convert deliveryDate to Date if provided
-        if (data.deliveryDate) {
-          const dateObj = new Date(data.deliveryDate);
-          if (!isNaN(dateObj.getTime())) {
-            orderData.deliveryDate = dateObj;
-          }
-        }
-
-        const order = await createOrder(orderData);
-        return NextResponse.json(order, { status: 201 });
-      } catch (error) {
-        console.error("Delivery order creation error:", error);
         return NextResponse.json(
           {
             error: "Failed to create order",

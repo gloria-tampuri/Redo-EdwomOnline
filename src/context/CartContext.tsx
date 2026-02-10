@@ -31,7 +31,8 @@ type CartAction =
   | { type: "ADD_ITEM"; payload: CartItem }
   | { type: "REMOVE_ITEM"; payload: string }
   | { type: "UPDATE_QUANTITY"; payload: { id: string; quantity: number } }
-  | { type: "CLEAR_CART" };
+  | { type: "CLEAR_CART" }
+  | { type: "INIT_CART"; payload: CartState };
 
 interface CartContextType {
   state: CartState;
@@ -47,26 +48,26 @@ const cartReducer = (state: CartState, action: CartAction): CartState => {
   switch (action.type) {
     case "ADD_ITEM": {
       const existingItem = state.items.find(
-        (item) => item._id === action.payload._id
+        (item) => item._id === action.payload._id,
       );
 
       if (existingItem) {
         const updatedItems = state.items.map((item) =>
           item._id === action.payload._id
             ? { ...item, quantity: item.quantity + action.payload.quantity }
-            : item
+            : item,
         );
         const totalPrice = updatedItems.reduce(
           (sum, item) =>
             sum + item.price * item.quantity * (1 - (item.discount || 0) / 100),
-          0
+          0,
         );
         return {
           ...state,
           items: updatedItems,
           totalItems: updatedItems.reduce(
             (sum, item) => sum + item.quantity,
-            0
+            0,
           ),
           totalPrice,
         };
@@ -76,7 +77,7 @@ const cartReducer = (state: CartState, action: CartAction): CartState => {
       const totalPrice = updatedItems.reduce(
         (sum, item) =>
           sum + item.price * item.quantity * (1 - (item.discount || 0) / 100),
-        0
+        0,
       );
 
       return {
@@ -89,17 +90,17 @@ const cartReducer = (state: CartState, action: CartAction): CartState => {
 
     case "REMOVE_ITEM": {
       const itemToRemove = state.items.find(
-        (item) => item._id === action.payload
+        (item) => item._id === action.payload,
       );
       if (!itemToRemove) return state;
 
       const updatedItems = state.items.filter(
-        (item) => item._id !== action.payload
+        (item) => item._id !== action.payload,
       );
       const totalPrice = updatedItems.reduce(
         (sum, item) =>
           sum + item.price * item.quantity * (1 - (item.discount || 0) / 100),
-        0
+        0,
       );
 
       return {
@@ -119,19 +120,19 @@ const cartReducer = (state: CartState, action: CartAction): CartState => {
       }
 
       const itemToUpdate = state.items.find(
-        (item) => item._id === action.payload.id
+        (item) => item._id === action.payload.id,
       );
       if (!itemToUpdate) return state;
 
       const updatedItems = state.items.map((item) =>
         item._id === action.payload.id
           ? { ...item, quantity: action.payload.quantity }
-          : item
+          : item,
       );
       const totalPrice = updatedItems.reduce(
         (sum, item) =>
           sum + item.price * item.quantity * (1 - (item.discount || 0) / 100),
-        0
+        0,
       );
 
       return {
@@ -148,6 +149,10 @@ const cartReducer = (state: CartState, action: CartAction): CartState => {
         totalItems: 0,
         totalPrice: 0,
       };
+    }
+
+    case "INIT_CART": {
+      return action.payload;
     }
 
     default:
@@ -172,16 +177,15 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({
         const savedCart = localStorage.getItem("edwom-cart");
         if (savedCart) {
           const parsedCart = JSON.parse(savedCart);
-          // Dispatch all items from localStorage
-          parsedCart.items.forEach((item: CartItem) => {
-            dispatch({ type: "ADD_ITEM", payload: item });
-          });
+          // Initialize cart state in one action instead of multiple dispatches
+          dispatch({ type: "INIT_CART", payload: parsedCart });
         }
       } catch (error) {
         console.error("Failed to load cart from localStorage:", error);
       }
     }
     setIsHydrated(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Save cart to localStorage whenever it changes (after hydration)

@@ -4,7 +4,10 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ChevronLeft } from "lucide-react";
 import { useCart } from "@/context/CartContext";
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
+import { useAuth } from "@/hooks/useAuth";
+import { toast } from "sonner";
+import OrderConfirmationCard from "@/components/OrderConfirmationCard";
 
 interface DeliveryFormData {
   fullName: string;
@@ -22,6 +25,11 @@ export default function DeliveryPage() {
   const router = useRouter();
   const { state, clearCart } = useCart();
   const [isProcessing, setIsProcessing] = useState(false);
+  const { isAuthenticated, isLoading, user } = useAuth();
+  const [redirectMessage, setRedirectMessage] = useState<string | null>(null);
+  const [cartLoaded, setCartLoaded] = useState(false);
+  const [completedOrder, setCompletedOrder] = useState<any>(null);
+  const formInitializedRef = useRef(false);
   const [formData, setFormData] = useState<DeliveryFormData>({
     fullName: "",
     email: "",
@@ -34,13 +42,56 @@ export default function DeliveryPage() {
     deliveryTime: "",
   });
 
+  // Redirect to login if not authenticated
+  useEffect(() => {
+    if (!completedOrder && !isLoading && !isAuthenticated) {
+      setRedirectMessage("Please log in to complete your order");
+      // Show message for 2 seconds before redirecting
+      const timer = setTimeout(() => {
+        router.push("/auth/login?callbackUrl=/delivery");
+      }, 2000);
+      return () => clearTimeout(timer);
+    }
+  }, [isLoading, isAuthenticated, router, completedOrder]);
+
+  // Auto-fill name and email from user session (only once)
+  useEffect(() => {
+    if (
+      !completedOrder &&
+      isAuthenticated &&
+      user &&
+      !isLoading &&
+      !formInitializedRef.current
+    ) {
+      setFormData((prev) => ({
+        ...prev,
+        fullName: user.name || "",
+        email: user.email || "",
+      }));
+      formInitializedRef.current = true;
+    }
+  }, [isAuthenticated, user?.email, user?.name, isLoading, completedOrder]);
+
+  // Ensure cart is loaded before showing the form
+  useEffect(() => {
+    if (!completedOrder) {
+      // Give cart context time to hydrate from localStorage
+      const timer = setTimeout(() => {
+        setCartLoaded(true);
+      }, 100);
+      return () => clearTimeout(timer);
+    } else {
+      setCartLoaded(true);
+    }
+  }, [completedOrder]);
+
   const subtotal = state.totalPrice;
   const total = subtotal;
 
   const handleInputChange = (
     e: React.ChangeEvent<
       HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
-    >
+    >,
   ) => {
     const { name, value } = e.target;
     setFormData((prev) => ({
@@ -53,7 +104,8 @@ export default function DeliveryPage() {
     e.preventDefault();
 
     if (state.items.length === 0) {
-      alert("Your cart is empty");
+      alert("Your cart is empty. Please add items before checking out.");
+      router.push("/");
       return;
     }
 
@@ -112,12 +164,15 @@ export default function DeliveryPage() {
       }
 
       const order = await response.json();
+      console.log("Order created successfully:", order);
 
       // Clear cart after successful order
       clearCart();
 
-      // Redirect to order confirmation
-      router.push(`/order-confirmation/${order._id}`);
+      toast.success("Order placed successfully!");
+
+      // Store completed order to show confirmation card
+      setCompletedOrder(order);
     } catch (error) {
       console.error("Order creation error:", error);
       const message =
@@ -130,10 +185,55 @@ export default function DeliveryPage() {
     }
   };
 
+  // Show redirect message or loading state
+  if (isLoading || redirectMessage) {
+    return (
+      <main className="min-h-screen bg-gray-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+          <div className="text-center py-20">
+            {redirectMessage ? (
+              <div className="space-y-4">
+                <div className="bg-[#556B2F] text-white px-6 py-4 rounded-lg shadow-lg max-w-md mx-auto">
+                  <p className="text-lg font-semibold mb-2">
+                    {redirectMessage}
+                  </p>
+                  <p className="text-sm opacity-90">
+                    Redirecting you to login...
+                  </p>
+                </div>
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#556B2F] mx-auto"></div>
+              </div>
+            ) : (
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#556B2F] mx-auto"></div>
+            )}
+          </div>
+        </div>
+      </main>
+    );
+  }
+
+  // Show order confirmation card FIRST to prevent cart state checks
+  if (completedOrder) {
+    return <OrderConfirmationCard order={completedOrder} />;
+  }
+
+  // Wait for cart to load from localStorage
+  if (!cartLoaded) {
+    return (
+      <main className="min-h-screen bg-gray-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+          <div className="text-center py-20">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#556B2F] mx-auto"></div>
+          </div>
+        </div>
+      </main>
+    );
+  }
+
   if (state.items.length === 0) {
     return (
       <main className="min-h-screen bg-gray-50">
-        <div className=" mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
           <Link
             href="/"
             className="inline-flex items-center gap-2 text-[#556B2F] hover:text-[#4a5c2a] font-semibold mb-8"

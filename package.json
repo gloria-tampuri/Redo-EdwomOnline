@@ -6,7 +6,8 @@
     "dev": "next dev --turbopack",
     "build": "next build --turbopack",
     "start": "next start",
-    "seed:admin": "node --loader ts-node/esm scripts/seed-admin.ts"
+    "seed:admin": "node --loader ts-node/esm scripts/seed-admin.ts",
+    "migrate:orders-customer": "ts-node scripts/migrate-orders-customer.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",

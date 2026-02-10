@@ -5,12 +5,27 @@ import Image from "next/image";
 import Link from "next/link";
 import { Minus, Plus, X, ChevronLeft } from "lucide-react";
 import { useCart } from "@/context/CartContext";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useAuth } from "@/hooks/useAuth";
 
 export default function CheckoutPage() {
   const router = useRouter();
   const { state, removeItem, updateQuantity, clearCart } = useCart();
   const [isProcessing, setIsProcessing] = useState(false);
+  const { isAuthenticated, isLoading } = useAuth();
+  const [redirectMessage, setRedirectMessage] = useState<string | null>(null);
+
+  // Redirect to login if not authenticated
+  useEffect(() => {
+    if (!isLoading && !isAuthenticated) {
+      setRedirectMessage("Please log in to continue with your order");
+      // Show message for 2 seconds before redirecting
+      const timer = setTimeout(() => {
+        router.push("/auth/login?callbackUrl=/checkout");
+      }, 2000);
+      return () => clearTimeout(timer);
+    }
+  }, [isLoading, isAuthenticated, router]);
 
   // Calculate totals
   const subtotal = state.totalPrice;
@@ -32,6 +47,33 @@ export default function CheckoutPage() {
     // Cart items are stored in context, so they'll be available on the next page
     router.push("/delivery");
   };
+
+  // Show redirect message or loading state
+  if (isLoading || redirectMessage) {
+    return (
+      <main className="min-h-screen bg-gray-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+          <div className="text-center py-20">
+            {redirectMessage ? (
+              <div className="space-y-4">
+                <div className="bg-[#556B2F] text-white px-6 py-4 rounded-lg shadow-lg max-w-md mx-auto">
+                  <p className="text-lg font-semibold mb-2">
+                    {redirectMessage}
+                  </p>
+                  <p className="text-sm opacity-90">
+                    Redirecting you to login...
+                  </p>
+                </div>
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#556B2F] mx-auto"></div>
+              </div>
+            ) : (
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#556B2F] mx-auto"></div>
+            )}
+          </div>
+        </div>
+      </main>
+    );
+  }
 
   if (state.items.length === 0) {
     return (
@@ -63,13 +105,19 @@ export default function CheckoutPage() {
     <main className="min-h-screen bg-gray-50">
       {/* Header */}
       <div className="bg-white border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex items-center justify-between gap-4">
           <Link
             href="/"
             className="inline-flex items-center gap-2 text-[#556B2F] hover:text-[#4a5c2a] font-semibold"
           >
             <ChevronLeft size={20} />
             Continue Shopping
+          </Link>
+          <Link
+            href="/orders"
+            className="inline-flex items-center gap-2 border-2 border-[#556B2F] text-[#556B2F] hover:bg-[#F1F5F9] font-semibold py-2 px-4 rounded-lg transition-colors duration-200"
+          >
+            View Order History
           </Link>
         </div>
       </div>
@@ -219,7 +267,7 @@ export default function CheckoutPage() {
                               onClick={() =>
                                 handleQuantityChange(
                                   item._id,
-                                  item.quantity - 1
+                                  item.quantity - 1,
                                 )
                               }
                               disabled={item.quantity <= 1}
@@ -234,7 +282,7 @@ export default function CheckoutPage() {
                               onClick={() =>
                                 handleQuantityChange(
                                   item._id,
-                                  item.quantity + 1
+                                  item.quantity + 1,
                                 )
                               }
                               className="p-0.5 hover:bg-gray-100 text-gray-600"

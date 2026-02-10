@@ -5,7 +5,7 @@ interface ItemDocument extends Document {
   category: Types.ObjectId;
   description?: string;
   price: number;
-  unit: string;
+  unit: Types.ObjectId | string; // Can be ObjectId reference or string
   discount?: number;
   stock: number;
   status: "In Stock" | "Out of Stock" | "Low Stock";
@@ -37,7 +37,7 @@ const ItemSchema = new Schema<ItemDocument>(
       min: 0,
     },
     unit: {
-      type: String,
+      type: Schema.Types.Mixed, // Can be String or ObjectId reference to Unit
       required: true,
     },
     discount: {
@@ -66,7 +66,7 @@ const ItemSchema = new Schema<ItemDocument>(
   },
   {
     timestamps: true,
-  }
+  },
 );
 
 // Pre-save hook to update lastUpdated
