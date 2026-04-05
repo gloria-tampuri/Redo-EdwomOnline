@@ -51,6 +51,9 @@ const OrderDetailsDrawer = ({
       items: [],
       totalAmount: 0,
       deliveryLocation: "",
+      deliveryDate: undefined,
+      deliveryTime: "",
+      deliveryInstructions: "",
       status: "Pending",
       orderDate: new Date().toISOString().split("T")[0],
       paymentStatus: "Unpaid",
@@ -95,7 +98,9 @@ const OrderDetailsDrawer = ({
     if (!itemSearchInput.trim()) return availableItems;
     return availableItems.filter((item) => {
       const categoryName =
-        typeof item.category === "object" ? item.category?.name : item.category;
+        typeof item.category === "object" 
+          ? (item.category as any)?.name 
+          : item.category;
       return (
         item.name.toLowerCase().includes(itemSearchInput.toLowerCase()) ||
         (categoryName?.toLowerCase() || "").includes(
@@ -146,6 +151,9 @@ const OrderDetailsDrawer = ({
           items: [],
           totalAmount: 0,
           deliveryLocation: "",
+          deliveryDate: undefined,
+          deliveryTime: "",
+          deliveryInstructions: "",
           status: "Pending",
           orderDate: new Date().toISOString().split("T")[0],
           paymentStatus: "Unpaid",
@@ -366,14 +374,14 @@ const OrderDetailsDrawer = ({
                   <Input
                     type="date"
                     name="orderDate"
-                    value={formData.orderDate.split("T")[0]}
+                    value={formData.orderDate ? formData.orderDate.split("T")[0] : ""}
                     onChange={(e) =>
                       setFormData({ ...formData, orderDate: e.target.value })
                     }
                   />
                 ) : (
                   <p className="text-xs font-medium text-gray-900">
-                    {new Date(formData.orderDate).toLocaleDateString()}
+                    {formData.orderDate ? new Date(formData.orderDate).toLocaleDateString() : "-"}
                   </p>
                 )}
               </div>
@@ -395,7 +403,7 @@ const OrderDetailsDrawer = ({
                     <Input
                       type="text"
                       name="customer.name"
-                      value={formData.customer.name}
+                      value={formData.customer?.name || ""}
                       onChange={handleInputChange}
                       placeholder="Customer name"
                     />
@@ -407,7 +415,7 @@ const OrderDetailsDrawer = ({
                     <Input
                       type="tel"
                       name="customer.phone"
-                      value={formData.customer.phone}
+                      value={formData.customer?.phone || ""}
                       onChange={handleInputChange}
                       placeholder="Phone"
                     />
@@ -419,7 +427,7 @@ const OrderDetailsDrawer = ({
                     <Input
                       type="email"
                       name="customer.email"
-                      value={formData.customer.email}
+                      value={formData.customer?.email || ""}
                       onChange={handleInputChange}
                       placeholder="Email"
                     />
@@ -431,7 +439,7 @@ const OrderDetailsDrawer = ({
                     <Input
                       type="text"
                       name="customer.address"
-                      value={formData.customer.address}
+                      value={formData.customer?.address || ""}
                       onChange={handleInputChange}
                       placeholder="Address"
                     />
@@ -486,6 +494,87 @@ const OrderDetailsDrawer = ({
                 {formData.deliveryLocation || "-"}
               </p>
             )}
+          </div>
+
+          {/* Delivery Details */}
+          <div>
+            <h3 className="text-sm font-semibold mb-3 text-[#170A11B2] text-[18px]">
+              Delivery Details
+            </h3>
+            <div className={isEditing ? "space-y-3" : "grid grid-cols-2 gap-4"}>
+              <div>
+                <label className="text-sm text-[#170A11B2] block mb-2">
+                  Delivery Date
+                </label>
+                {isEditing ? (
+                  <Input
+                    type="date"
+                    name="deliveryDate"
+                    value={
+                      formData.deliveryDate
+                        ? new Date(formData.deliveryDate)
+                            .toISOString()
+                            .split("T")[0]
+                        : ""
+                    }
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        deliveryDate: new Date(e.target.value),
+                      })
+                    }
+                  />
+                ) : (
+                  <p className="text-xs text-gray-900">
+                    {formData.deliveryDate
+                      ? new Date(formData.deliveryDate).toLocaleDateString()
+                      : "-"}
+                  </p>
+                )}
+              </div>
+              <div>
+                <label className="text-sm text-[#170A11B2] block mb-2">
+                  Delivery Time
+                </label>
+                {isEditing ? (
+                  <Input
+                    type="text"
+                    name="deliveryTime"
+                    value={formData.deliveryTime || ""}
+                    onChange={handleInputChange}
+                    placeholder="e.g., 10:00 AM - 12:00 PM"
+                  />
+                ) : (
+                  <p className="text-xs text-gray-900">
+                    {formData.deliveryTime || "-"}
+                  </p>
+                )}
+              </div>
+              <div className={isEditing ? "" : "col-span-2"}>
+                <label className="text-sm text-[#170A11B2] block mb-2">
+                  Delivery Instructions
+                </label>
+                {isEditing ? (
+                  <textarea
+                    name="deliveryInstructions"
+                    value={formData.deliveryInstructions || ""}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        deliveryInstructions: e.target.value,
+                      })
+                    }
+                    placeholder="Special delivery instructions"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md text-xs focus:outline-none focus:ring-2 focus:ring-green-500"
+                    rows={3}
+                  />
+                ) : (
+                  <p className="text-xs text-gray-900">
+                    {formData.deliveryInstructions || "-"}
+                  </p>
+                )}
+              </div>
+            </div>
           </div>
 
           {/* Items List */}

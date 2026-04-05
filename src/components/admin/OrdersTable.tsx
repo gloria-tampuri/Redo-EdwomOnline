@@ -156,7 +156,8 @@ const OrdersPage = () => {
         const createdAt = row.original.createdAt;
         const dateToUse = orderDate || createdAt;
         if (!dateToUse) return "N/A";
-        return new Date(dateToUse).toLocaleDateString();
+        const dateStr = typeof dateToUse === 'string' ? dateToUse : String(dateToUse);
+        return new Date(dateStr).toLocaleDateString();
       },
     },
     {

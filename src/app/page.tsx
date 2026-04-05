@@ -73,7 +73,7 @@ export default function Home() {
                     icon={category.icon}
                     color={category.color}
                   />
-                )
+                ),
             )}
           </div>
         </section>
@@ -112,7 +112,7 @@ export default function Home() {
             </Link>
           </div>
 
-          <div className="grid gap-6 grid-cols-[repeat(auto-fill,minmax(300px,1fr))]">
+          <div className="grid gap-4 grid-cols-1 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 2xl:grid-cols-5">
             {inStockItems.map((item) => (
               <ItemCard
                 key={item._id}
@@ -145,7 +145,7 @@ export default function Home() {
             </Link>
           </div>
 
-          <div className="grid gap-6 grid-cols-[repeat(auto-fill,minmax(300px,1fr))]">
+          <div className="grid gap-4 grid-cols-1 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 2xl:grid-cols-5">
             {activePackages.map((pkg) => (
               <PackageCard
                 key={pkg._id || ""}

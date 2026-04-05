@@ -82,7 +82,12 @@ const ItemDetailsDrawer = ({
   useEffect(() => {
     if (isOpen) {
       if (item) {
-        setFormData(item);
+        // Ensure category is always a string (the ID), not an object
+        const normalizedItem = {
+          ...item,
+          category: typeof item.category === 'string' ? item.category : item.category._id,
+        };
+        setFormData(normalizedItem);
         setImagePreview(item.image || "");
         setMode(initialMode);
       } else {
@@ -203,7 +208,7 @@ const ItemDetailsDrawer = ({
                 </label>
                 {isEditing ? (
                   <Select
-                    value={formData.category}
+                    value={typeof formData.category === 'string' ? formData.category : ''}
                     onValueChange={(value) =>
                       handleSelectChange("category", value)
                     }
@@ -221,8 +226,8 @@ const ItemDetailsDrawer = ({
                   </Select>
                 ) : (
                   <p className="text-gray-900">
-                    {categories.find((c) => c._id === formData.category)
-                      ?.name || formData.category}
+                    {categories.find((c) => c._id === (typeof formData.category === 'string' ? formData.category : formData.category._id))
+                      ?.name || (typeof formData.category === 'string' ? formData.category : formData.category.name)}
                   </p>
                 )}
               </div>
