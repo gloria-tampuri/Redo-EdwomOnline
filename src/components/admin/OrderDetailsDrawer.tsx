@@ -98,8 +98,8 @@ const OrderDetailsDrawer = ({
     if (!itemSearchInput.trim()) return availableItems;
     return availableItems.filter((item) => {
       const categoryName =
-        typeof item.category === "object" 
-          ? (item.category as any)?.name 
+        typeof item.category === "object"
+          ? (item.category as any)?.name
           : item.category;
       return (
         item.name.toLowerCase().includes(itemSearchInput.toLowerCase()) ||
@@ -374,14 +374,18 @@ const OrderDetailsDrawer = ({
                   <Input
                     type="date"
                     name="orderDate"
-                    value={formData.orderDate ? formData.orderDate.split("T")[0] : ""}
+                    value={
+                      formData.orderDate ? formData.orderDate.split("T")[0] : ""
+                    }
                     onChange={(e) =>
                       setFormData({ ...formData, orderDate: e.target.value })
                     }
                   />
                 ) : (
                   <p className="text-xs font-medium text-gray-900">
-                    {formData.orderDate ? new Date(formData.orderDate).toLocaleDateString() : "-"}
+                    {formData.orderDate
+                      ? new Date(formData.orderDate).toLocaleDateString()
+                      : "-"}
                   </p>
                 )}
               </div>
